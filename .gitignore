@@ -1,0 +1,32 @@
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# --- Virtual environment ---
+.venv/
+venv/
+env/
+
+# --- PyCharm / JetBrains ---
+.idea/
+
+# --- Streamlit secrets (NEVER commit this) ---
+.streamlit/secrets.toml
+
+# --- OS-generated files ---
+.DS_Store
+Thumbs.db
+
+# --- Raw source data (personal working file, not needed by the app) ---
+raw_data/
+*Personal_Workout*.xlsx
+*Personal Workout*.xlsx
+runs_validation_backup.xlsx
+
+# --- Local script outputs / scratch space ---
+output/
+*.log
