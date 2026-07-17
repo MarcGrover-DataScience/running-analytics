@@ -40,6 +40,7 @@ from datetime import datetime, time, timedelta
 
 import pandas as pd
 from openpyxl import load_workbook
+from openpyxl.styles import Font
 
 # ==============================================================
 # SECTION 1: CONFIGURATION
@@ -439,27 +440,132 @@ parquet_path = f"{OUTPUT_FOLDER}/{OUTPUT_PARQUET_FILENAME}"
 df.to_parquet(parquet_path, index=False)
 print(f"  Wrote Parquet file: {parquet_path}")
 
+# # --- 10b. Excel backup / validation / manual-edit workbook ---
+# excel_path = f"{OUTPUT_FOLDER}/{OUTPUT_EXCEL_FILENAME}"
+#
+# with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+#     df.to_excel(writer, sheet_name="Runs", index=False)
+#     personal_bests_df.to_excel(writer, sheet_name="Personal Bests", index=False)
+#     favourite_runs_df.to_excel(writer, sheet_name="Favourite Runs", index=False)
+#     dropdown_lists_df.to_excel(writer, sheet_name="Drop down lists", index=False)
+#
+#     # --- Formatting: applied to the 'Runs' sheet only ---
+#     runs_sheet = writer.sheets["Runs"]
+#
+#     # Column letters follow FINAL_FIELD_ORDER, starting at 'A'.
+#     # Date -> dd/mm/yyyy, no time component
+#     date_col = FINAL_FIELD_ORDER.index("Date") + 1
+#     for cell in runs_sheet.iter_cols(min_col=date_col, max_col=date_col, min_row=2):
+#         for c in cell:
+#             c.number_format = "dd/mm/yyyy"
+#
+#     # Numeric fields -> 2 decimal places
+#     TWO_DP_FIELDS = ["Run Distance", "Running Speed (km/hr)", "Run Quality", "Run Calories"]
+#     for field in TWO_DP_FIELDS:
+#         col_idx = FINAL_FIELD_ORDER.index(field) + 1
+#         for cell in runs_sheet.iter_cols(min_col=col_idx, max_col=col_idx, min_row=2):
+#             for c in cell:
+#                 c.number_format = "0.00"
+#
+#     # Column widths: size to the longer of the header or the widest cell
+#     # value actually written to the sheet, so long headers/notes don't
+#     # produce unreadably narrow or wide columns. Reads directly from the
+#     # worksheet cells (rather than the pandas DataFrame) to avoid any
+#     # dtype-related ambiguity.
+#     for i, field in enumerate(FINAL_FIELD_ORDER, start=1):
+#         col_letter = runs_sheet.cell(row=1, column=i).column_letter
+#         max_content_length = len(field)  # start with the header's own length
+#         for row in runs_sheet.iter_rows(min_col=i, max_col=i, min_row=2):
+#             cell_value = row[0].value
+#             if cell_value is not None:
+#                 cell_length = len(str(cell_value))
+#                 if cell_length > max_content_length:
+#                     max_content_length = cell_length
+#         width = min(max_content_length + 2, 40)
+#         runs_sheet.column_dimensions[col_letter].width = width
+#
+# print(f"  Wrote Excel backup: {excel_path}")
+
 # --- 10b. Excel backup / validation / manual-edit workbook ---
 excel_path = f"{OUTPUT_FOLDER}/{OUTPUT_EXCEL_FILENAME}"
 
+# Run Time and Running Pace are stored as formatted text strings
+# ("00:29:01", "05:30") in the main dataset, so Excel can't apply a
+# genuine time/duration format to them as-is. For the Excel export only,
+# convert them to real durations so they display correctly and behave
+# as proper time values (sortable, usable in formulas) rather than text
+# that merely looks like a time.
+def parse_hhmmss_to_timedelta(value):
+    """Convert an 'hh:mm:ss' string to a timedelta, or None if blank."""
+    if value is None:
+        return None
+    hours, minutes, seconds = map(int, value.split(":"))
+    return timedelta(hours=hours, minutes=minutes, seconds=seconds)
+
+
+def parse_mmss_to_timedelta(value):
+    """Convert a 'mm:ss' string to a timedelta, or None if blank."""
+    if value is None:
+        return None
+    minutes, seconds = map(int, value.split(":"))
+    return timedelta(minutes=minutes, seconds=seconds)
+
+
+excel_df = df.copy()
+excel_df["Run Time (hh:mm:ss)"] = df["Run Time (hh:mm:ss)"].apply(
+    parse_hhmmss_to_timedelta
+)
+excel_df["Running Pace (min/km)"] = df["Running Pace (min/km)"].apply(
+    parse_mmss_to_timedelta
+)
+
 with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
-    df.to_excel(writer, sheet_name="Runs", index=False)
+    excel_df.to_excel(writer, sheet_name="Runs", index=False)
     personal_bests_df.to_excel(writer, sheet_name="Personal Bests", index=False)
     favourite_runs_df.to_excel(writer, sheet_name="Favourite Runs", index=False)
     dropdown_lists_df.to_excel(writer, sheet_name="Drop down lists", index=False)
 
-    # --- Formatting: applied to the 'Runs' sheet only ---
+    # --- Formatting: bold header row + frozen top row, all sheets ---
+    for sheet_name in writer.sheets:
+        sheet = writer.sheets[sheet_name]
+        for cell in sheet[1]:
+            cell.font = Font(bold=True)
+        sheet.freeze_panes = "A2"
+
+    # --- Numeric/date/time formatting: 'Runs' sheet only ---
     runs_sheet = writer.sheets["Runs"]
 
-    # Column letters follow FINAL_FIELD_ORDER, starting at 'A'.
     # Date -> dd/mm/yyyy, no time component
     date_col = FINAL_FIELD_ORDER.index("Date") + 1
     for cell in runs_sheet.iter_cols(min_col=date_col, max_col=date_col, min_row=2):
         for c in cell:
             c.number_format = "dd/mm/yyyy"
 
-    # Numeric fields -> 2 decimal places
-    TWO_DP_FIELDS = ["Run Distance", "Running Speed (km/hr)", "Run Quality", "Run Calories"]
+    # Run Time -> hh:mm:ss ; Running Pace -> mm:ss (true duration values now)
+    run_time_col = FINAL_FIELD_ORDER.index("Run Time (hh:mm:ss)") + 1
+    for cell in runs_sheet.iter_cols(min_col=run_time_col, max_col=run_time_col, min_row=2):
+        for c in cell:
+            c.number_format = "hh:mm:ss"
+
+    pace_col = FINAL_FIELD_ORDER.index("Running Pace (min/km)") + 1
+    for cell in runs_sheet.iter_cols(min_col=pace_col, max_col=pace_col, min_row=2):
+        for c in cell:
+            c.number_format = "mm:ss"
+
+    # Run Quality -> percentage, 1 decimal place (0.8017 -> 80.2%)
+    quality_col = FINAL_FIELD_ORDER.index("Run Quality") + 1
+    for cell in runs_sheet.iter_cols(min_col=quality_col, max_col=quality_col, min_row=2):
+        for c in cell:
+            c.number_format = "0.0%"
+
+    # Run Calories -> whole number, no decimal places
+    calories_col = FINAL_FIELD_ORDER.index("Run Calories") + 1
+    for cell in runs_sheet.iter_cols(min_col=calories_col, max_col=calories_col, min_row=2):
+        for c in cell:
+            c.number_format = "0"
+
+    # Remaining numeric fields -> 2 decimal places (unchanged from before)
+    TWO_DP_FIELDS = ["Run Distance", "Running Speed (km/hr)"]
     for field in TWO_DP_FIELDS:
         col_idx = FINAL_FIELD_ORDER.index(field) + 1
         for cell in runs_sheet.iter_cols(min_col=col_idx, max_col=col_idx, min_row=2):

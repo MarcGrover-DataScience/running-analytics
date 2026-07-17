@@ -5,8 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fa2787fd-4a65-4760-bced-151d7eb01d78" name="Changes" comment="Running Analytics update">
-      <change afterPath="$PROJECT_DIR$/Ingest_Transform_v1.1.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Ingest_Transform_v1.1.py" beforeDir="false" afterPath="$PROJECT_DIR$/Ingest_Transform_v1.1.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -92,7 +92,15 @@
       <option name="project" value="LOCAL" />
       <updated>1784289681206</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Running Analytics update">
+      <option name="closed" value="true" />
+      <created>1784299409993</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1784299409993</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
