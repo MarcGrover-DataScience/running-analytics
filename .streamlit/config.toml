@@ -1,0 +1,15 @@
+[theme]
+font = "sans serif"
+chartCategoricalColors = ["#4CAF7D", "#3B82C4", "#7A8B99", "#8FD4B0", "#6BA3D6", "#A9B4BC"]
+
+[theme.dark]
+primaryColor = "#4CAF7D"
+backgroundColor = "#0E1117"
+secondaryBackgroundColor = "#1C2128"
+textColor = "#FAFAFA"
+
+[theme.light]
+primaryColor = "#2E7D5B"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F3F2"
+textColor = "#1A1A1A"

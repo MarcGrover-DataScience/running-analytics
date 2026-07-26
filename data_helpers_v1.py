@@ -101,19 +101,6 @@ def format_seconds_to_mmss(total_seconds: float) -> str:
     return f"{minutes:02d}:{seconds:02d}"
 
 
-def format_seconds_to_dhms(total_seconds: float) -> str:
-    """Format total seconds as D:HH:MM:SS - used for durations large enough
-    that a plain hour count loses context (e.g. total time run over a
-    rolling year or all-time), so the day count is shown explicitly."""
-    if pd.isna(total_seconds):
-        return "-"
-    total_seconds = round(total_seconds)
-    days, remainder = divmod(total_seconds, 86400)
-    hours, remainder = divmod(remainder, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    return f"{days}:{hours:02d}:{minutes:02d}:{seconds:02d}"
-
-
 # ==============================================================
 # KPI CALCULATION HELPERS
 # ==============================================================
