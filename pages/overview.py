@@ -98,7 +98,7 @@ distance_per_month = kpi_distance_sum(df) / months_elapsed
 
 cols = st.columns(6)
 with cols[0]:
-    st.metric("Distance", f"{kpi_distance_sum(df):,.2f} km")
+    st.metric("Distance", f"{kpi_distance_sum(df):,.0f} km")
 with cols[1]:
     quality_avg = kpi_quality_average(df)
     st.metric("Average Quality", f"{quality_avg:.1%}" if quality_avg == quality_avg else "-")
