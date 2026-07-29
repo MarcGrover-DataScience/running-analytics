@@ -37,13 +37,9 @@ pages = [
     st.Page("pages/best_times.py", title="Best Times"),
 ]
 
-# Local-only pages: only appear when local_mode is set to true in
-# .streamlit/secrets.toml. That file lives only on your machine and is
-# gitignored - never committed and never present on Streamlit Cloud - so
-# this page simply doesn't exist for public visitors; its code doesn't
-# even run for them, not just hidden by styling.
-if st.secrets.get("local_mode", False):
-    pages.append(st.Page("pages/log_new_run.py", title="Log New Run"))
+# Local-only pages will be appended here once built, e.g.:
+# if st.secrets.get("local_mode", False):
+#     pages += [st.Page("pages/log_new_run.py", title="Log New Run")]
 
 nav = st.navigation(pages)
 nav.run()

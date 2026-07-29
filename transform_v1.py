@@ -19,34 +19,6 @@ from datetime import datetime, time, timedelta
 import pandas as pd
 
 # ==============================================================
-# SHARED CONSTANTS
-# ==============================================================
-# The clean data model's field order - defined once here so
-# ingest_transform.py, reingest_edits.py, and the entry form all agree on
-# column order without each keeping their own copy.
-FINAL_FIELD_ORDER = [
-    "Date",
-    "Run Type",
-    "Run Location",
-    "Run Distance",
-    "Distance Range",
-    "Run Time (hh:mm:ss)",
-    "Running Pace (min/km)",
-    "Running Speed (km/hr)",
-    "Run Quality",
-    "Run Calories",
-    "Country",
-    "Weekday",
-    "Family Run",
-    "5k_Sub20",
-    "Current Year",
-    "Current Month",
-    "Last Month",
-    "In Last Year",
-    "Notes",
-]
-
-# ==============================================================
 # TIME CONVERSION
 # ==============================================================
 def excel_time_to_seconds(value) -> float:
@@ -90,25 +62,6 @@ def seconds_to_hhmmss(total_seconds: float) -> str:
     hours, remainder = divmod(total_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-
-
-def hhmmss_string_to_timedelta(value: str):
-    """Convert an 'hh:mm:ss' string back to a timedelta - used when
-    writing a row to Excel, so the cell holds a genuine duration value
-    (displays correctly with a time number_format) rather than text."""
-    if value is None:
-        return None
-    hours, minutes, seconds = map(int, value.split(":"))
-    return timedelta(hours=hours, minutes=minutes, seconds=seconds)
-
-
-def mmss_string_to_timedelta(value: str):
-    """Convert a 'mm:ss' string back to a timedelta (see
-    hhmmss_string_to_timedelta above - same purpose, for pace values)."""
-    if value is None:
-        return None
-    minutes, seconds = map(int, value.split(":"))
-    return timedelta(minutes=minutes, seconds=seconds)
 
 
 # ==============================================================
