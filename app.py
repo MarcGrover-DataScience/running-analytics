@@ -35,6 +35,7 @@ st.markdown(
 pages = [
     st.Page("pages/overview.py", title="Overview"),
     st.Page("pages/best_times.py", title="Best Times"),
+    st.Page("pages/distance.py", title="Distance"),
 ]
 
 # Local-only pages: only appear when local_mode is set to true in
