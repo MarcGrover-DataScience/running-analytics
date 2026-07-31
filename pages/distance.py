@@ -115,13 +115,15 @@ with trends_tab:
         display_df["Maximum Quality"] = display_df["Maximum Quality"] * 100
         return display_df
 
-    def render_summary_table(summary_df: pd.DataFrame, height: int | None = None):
+    def render_summary_table(summary_df: pd.DataFrame, height: int | str = "content"):
         """Shared rendering for the Annual/Monthly Summary tables:
         Distance and Average Quality get data-bar (ProgressColumn)
         treatment, per the spec - Average Quality uses the same fixed
         0-110% scale as the Best Times page's quality bars, for
         consistency; Distance is scaled to that table's own maximum,
-        since (unlike quality) it has no natural fixed ceiling."""
+        since (unlike quality) it has no natural fixed ceiling. height
+        defaults to 'content' (fits all rows, no scrolling) - pass a
+        pixel integer instead for a fixed, scrollable height."""
         display_df = prepare_summary_display(summary_df)
         st.dataframe(
             display_df,
