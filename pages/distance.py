@@ -129,7 +129,7 @@ with trends_tab:
             display_df,
             column_config={
                 "Distance": st.column_config.ProgressColumn(
-                    format="%.2f km",
+                    format="%,.2f km",
                     min_value=0,
                     max_value=display_df["Distance"].max(),
                 ),

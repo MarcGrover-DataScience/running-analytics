@@ -483,45 +483,6 @@ def calculate_monthly_summary(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def calculate_monthly_quality_trend(df: pd.DataFrame) -> pd.DataFrame:
-    """Average Quality and Maximum Quality per calendar month, ascending
-    (oldest first, so the most recent month plots on the right of the
-    line chart) - both are quality metrics, so (per the project's
-    metric-notes convention) Family Runs are excluded. Returns columns:
-    Month, Average Quality, Maximum Quality."""
-    working_df = add_month_label(df)
-    month_periods = sorted(working_df["_month_period"].unique())
-    rows = []
-    for period in month_periods:
-        month_df = working_df[working_df["_month_period"] == period]
-        rows.append(
-            {
-                "Month": month_df["Month"].iloc[0],
-                "Average Quality": kpi_quality_average(month_df),
-                "Maximum Quality": kpi_quality_maximum(month_df),
-            }
-        )
-    return pd.DataFrame(rows)
-
-
-def calculate_monthly_moving_average_quality(
-    monthly_quality_df: pd.DataFrame, window: int = 4
-) -> pd.DataFrame:
-    """4-month moving average of Average Quality per month - e.g. the
-    value shown for April 2026 is the average of the Average Quality
-    values for January/February/March/April 2026. Expects
-    calculate_monthly_quality_trend's output (already in ascending month
-    order) as input. The first (window - 1) months have no moving-average
-    value yet (not enough prior months), and are left as NaN rather than
-    a partial average, so the line chart correctly shows no point for
-    them."""
-    result = monthly_quality_df.copy()
-    result["Moving Average Quality"] = (
-        result["Average Quality"].rolling(window=window, min_periods=window).mean()
-    )
-    return result[["Month", "Moving Average Quality"]]
-
-
 def highlight_column_minimum(seconds_df: pd.DataFrame):
     """Returns a Styler-compatible function that highlights, in each
     column, the cell(s) matching that column's minimum value - used to
