@@ -142,13 +142,8 @@ def kpi_run_count(df: pd.DataFrame) -> int:
 
 
 def kpi_average_pace_seconds(df: pd.DataFrame) -> float:
-    """Average pace (in seconds/km), excluding Family Runs. Pace is
-    fundamentally a run-quality measure - Family Runs are runs where I'm
-    deliberately running slower, so (per the project's metric-notes
-    convention) they're excluded here, the same as Average/Maximum
-    Quality."""
-    non_family = df[df["Family Run"] == "No"]
-    pace_seconds = non_family["Running Pace (min/km)"].apply(parse_mmss_to_seconds)
+    """Average pace (in seconds/km) across the given rows."""
+    pace_seconds = df["Running Pace (min/km)"].apply(parse_mmss_to_seconds)
     return pace_seconds.mean()
 
 
@@ -428,15 +423,16 @@ def calculate_monthly_moving_average_distance(
 def calculate_annual_summary(df: pd.DataFrame) -> pd.DataFrame:
     """Annual Summary table (Distance page, Trends tab): one row per
     calendar year that has at least one run, most recent year first.
-    Distance/Runs/Average Distance are calculated across all runs;
-    Average Quality/Maximum Quality/Average Pace exclude Family Runs, per
-    the project's metric-notes convention (Average Pace is fundamentally
-    a quality measure, and Family Runs are deliberately-slower runs).
-    Returns columns: Year, Distance, Runs, Average Distance, Average
-    Quality, Maximum Quality, Average Pace (the last formatted as
-    'mm:ss')."""
+    Distance/Runs/Average Distance/Average Pace are calculated across all
+    runs (not quality metrics); Average Quality/Maximum Quality exclude
+    Family Runs, per the project's metric-notes convention. Returns
+    columns: Year, Distance, Runs, Average Distance, Average Quality,
+    Maximum Quality, Average Pace (the last formatted as 'mm:ss')."""
     working_df = df.copy()
     working_df["_year"] = working_df["Date"].dt.year
+    working_df["_pace_seconds"] = working_df["Running Pace (min/km)"].apply(
+        parse_mmss_to_seconds
+    )
 
     years = sorted(working_df["_year"].unique(), reverse=True)
     rows = []
@@ -450,7 +446,7 @@ def calculate_annual_summary(df: pd.DataFrame) -> pd.DataFrame:
                 "Average Distance": year_df["Run Distance"].mean(),
                 "Average Quality": kpi_quality_average(year_df),
                 "Maximum Quality": kpi_quality_maximum(year_df),
-                "Average Pace": format_seconds_to_mmss(kpi_average_pace_seconds(year_df)),
+                "Average Pace": format_seconds_to_mmss(year_df["_pace_seconds"].mean()),
             }
         )
     return pd.DataFrame(rows)
@@ -464,6 +460,9 @@ def calculate_monthly_summary(df: pd.DataFrame) -> pd.DataFrame:
     columns: Month, Distance, Runs, Average Distance, Average Quality,
     Maximum Quality, Average Pace (the last formatted as 'mm:ss')."""
     working_df = add_month_label(df)
+    working_df["_pace_seconds"] = working_df["Running Pace (min/km)"].apply(
+        parse_mmss_to_seconds
+    )
 
     month_periods = sorted(working_df["_month_period"].unique(), reverse=True)
     rows = []
@@ -477,7 +476,7 @@ def calculate_monthly_summary(df: pd.DataFrame) -> pd.DataFrame:
                 "Average Distance": month_df["Run Distance"].mean(),
                 "Average Quality": kpi_quality_average(month_df),
                 "Maximum Quality": kpi_quality_maximum(month_df),
-                "Average Pace": format_seconds_to_mmss(kpi_average_pace_seconds(month_df)),
+                "Average Pace": format_seconds_to_mmss(month_df["_pace_seconds"].mean()),
             }
         )
     return pd.DataFrame(rows)
