@@ -21,7 +21,6 @@ a straightforward shared function.
 """
 
 from datetime import datetime, timedelta
-import math
 
 import pandas as pd
 import streamlit as st
@@ -521,113 +520,6 @@ def calculate_monthly_moving_average_quality(
         result["Average Quality"].rolling(window=window, min_periods=window).mean()
     )
     return result[["Month", "Moving Average Quality"]]
-
-
-def kpi_quality_coefficient_of_variation(df: pd.DataFrame) -> float:
-    """Coefficient of variation (standard deviation / mean) of Run
-    Quality, excluding Family Runs - the basis for the Consistency
-    metric. NaN if there are fewer than 2 non-Family-Run rows (standard
-    deviation is undefined for a single value)."""
-    non_family_quality = df[df["Family Run"] == "No"]["Run Quality"]
-    if len(non_family_quality) < 2:
-        return math.nan
-    return non_family_quality.std() / non_family_quality.mean()
-
-
-# Consistency category thresholds, per the Consistency Definition
-# (derived from analysis of 17 years of data) - checked in descending
-# order, first match wins; CV <= 0.025 falls through to "Very High". A
-# larger coefficient of variation means less consistent.
-CONSISTENCY_THRESHOLDS = [
-    (0.05, "Very Low"),
-    (0.04, "Low"),
-    (0.033, "Medium"),
-    (0.025, "High"),
-]
-
-
-def calculate_consistency_category(coefficient_of_variation: float) -> str:
-    """Maps a coefficient of variation (see
-    kpi_quality_coefficient_of_variation) to a Consistency category:
-    Very Low / Low / Medium / High / Very High. Returns None if the
-    coefficient of variation is undefined (fewer than 2 non-Family-Run
-    runs in the period)."""
-    if pd.isna(coefficient_of_variation):
-        return None
-    for threshold, category in CONSISTENCY_THRESHOLDS:
-        if coefficient_of_variation > threshold:
-            return category
-    return "Very High"
-
-
-def calculate_form_score(average_quality: float) -> float:
-    """Form Score, per the Form Definition: converts a mean Run Quality
-    value (0-1 scale, from non-Family-Run rows) into a more spread-out
-    0-10 scale, since most Average Quality values cluster tightly
-    between roughly 0.87 and 0.92. Subtracts 0.82 from the mean, clips
-    the result to [0, 0.1], then multiplies by 100. Always rounded to 1
-    decimal place. NaN if average_quality is NaN (e.g. no non-Family-Run
-    runs in the period)."""
-    if pd.isna(average_quality):
-        return math.nan
-    shifted_value = average_quality - 0.82
-    clipped_value = min(max(shifted_value, 0.0), 0.1)
-    return round(clipped_value * 100, 1)
-
-
-def calculate_monthly_consistency_trend(df: pd.DataFrame) -> pd.DataFrame:
-    """Coefficient of variation of Run Quality (see
-    kpi_quality_coefficient_of_variation) per calendar month, ascending
-    (oldest first, so the most recent month plots on the right of the
-    line chart) - the continuous value the Consistency category is
-    derived from; a lower value means more consistent. Returns columns:
-    Month, Coefficient of Variation."""
-    working_df = add_month_label(df)
-    month_periods = sorted(working_df["_month_period"].unique())
-    rows = []
-    for period in month_periods:
-        month_df = working_df[working_df["_month_period"] == period]
-        rows.append(
-            {
-                "Month": month_df["Month"].iloc[0],
-                "Coefficient of Variation": kpi_quality_coefficient_of_variation(month_df),
-            }
-        )
-    return pd.DataFrame(rows)
-
-
-def calculate_monthly_quality_table(df: pd.DataFrame) -> pd.DataFrame:
-    """Monthly Quality table (Quality page): one row per calendar month
-    that has at least one run, most recent month first. Month / Average
-    Quality / Maximum Quality are the same three fields (and same row
-    order) as the Distance page's Monthly Summary table - see
-    calculate_monthly_summary. Consistency and Form are calculated per
-    the new metric definitions; Form Difference is {Form this month} -
-    {Form last calendar month} (using the already-rounded Form values),
-    and is NaN for a month with no immediately preceding month in the
-    data."""
-    working_df = add_month_label(df)
-    month_periods = sorted(working_df["_month_period"].unique())  # ascending, for the diff()
-
-    rows = []
-    for period in month_periods:
-        month_df = working_df[working_df["_month_period"] == period]
-        average_quality = kpi_quality_average(month_df)
-        coefficient_of_variation = kpi_quality_coefficient_of_variation(month_df)
-        rows.append(
-            {
-                "_month_period": period,
-                "Month": month_df["Month"].iloc[0],
-                "Average Quality": average_quality,
-                "Maximum Quality": kpi_quality_maximum(month_df),
-                "Consistency": calculate_consistency_category(coefficient_of_variation),
-                "Form": calculate_form_score(average_quality),
-            }
-        )
-    result = pd.DataFrame(rows)
-    result["Form Difference"] = result["Form"].diff()
-    result = result.sort_values("_month_period", ascending=False).reset_index(drop=True)
-    return result.drop(columns="_month_period")
 
 
 def highlight_column_minimum(seconds_df: pd.DataFrame):
