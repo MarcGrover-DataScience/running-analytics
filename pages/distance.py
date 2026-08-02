@@ -2,18 +2,21 @@
 Running Analytics - Distance Page
 ====================================
 
-Built one tab at a time, per the project's visuals-spec process. Only
-the Trends tab is built so far (Ranges and Annual Cumulative to follow) -
-wrapped in st.tabs() now so those can be added as further tab entries
-without restructuring this page later.
+Built one tab at a time, per the project's visuals-spec process. Trends
+and Annual Cumulative are built (Ranges to follow).
 """
+
+from datetime import datetime
+import calendar
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
 from data_helpers import (
+    calculate_annual_cumulative_distance,
     calculate_annual_summary,
+    calculate_monthly_distance_distribution,
     calculate_monthly_distance_trend,
     calculate_monthly_moving_average_distance,
     calculate_monthly_summary,
@@ -30,7 +33,7 @@ st.title("Distance")
 
 runs_df = load_runs_data()
 
-(trends_tab,) = st.tabs(["Trends"])
+trends_tab, annual_cumulative_tab = st.tabs(["Trends", "Annual Cumulative"])
 
 
 # ==============================================================
@@ -152,3 +155,124 @@ with trends_tab:
     # (most recent months first) rather than every month at once.
     st.subheader("Monthly Summary")
     render_summary_table(monthly_summary_df, height=630)
+
+
+# ==============================================================
+# ANNUAL CUMULATIVE TAB
+# ==============================================================
+with annual_cumulative_tab:
+
+    # The one parameter for this tab - all three visuals below are based
+    # from January of this year onwards. Change this single value to
+    # move the start point in future (e.g. to 2022) without touching any
+    # of the calculation or chart code below.
+    ANNUAL_CUMULATIVE_START_YEAR = 2021
+
+    # Used only by the Monthly Distance Distribution bar chart (Bar34),
+    # to identify and exclude the current, still-in-progress calendar
+    # month - taken live at render time, not from the dataset's most
+    # recent date, so the app self-corrects at the start of every new
+    # month even if the underlying data hasn't been refreshed yet.
+    CALCULATION_DATE = datetime.today()
+
+    cumulative_distance_df = calculate_annual_cumulative_distance(
+        runs_df, ANNUAL_CUMULATIVE_START_YEAR
+    )
+
+    # --- Row 1: Annual Distance Progression (Line32) ---
+    # One line per year, x-axis is month-of-year (Jan-Dec) rather than
+    # 'Mon-yy' - the point of this chart is comparing years against each
+    # other on the same month positions, which only works if the year
+    # isn't baked into the x-axis label. The most recent year is drawn
+    # in the primary green and slightly thicker, to draw the eye to
+    # current-year progress against the greyed-back prior years.
+    years = sorted(cumulative_distance_df["Year"].unique())
+    month_order = cumulative_distance_df.sort_values("Month Number")["Month"].unique().tolist()
+    # A muted grey-blue for earlier years, stepping up to the primary
+    # green for the most recent year.
+    EARLIER_YEAR_COLORS = ["#8FA6B3", "#7A98A8", "#6B8C9C", "#5C8091", "#4C90AF"]
+
+    line32_fig = go.Figure()
+    for i, year in enumerate(years):
+        is_latest_year = year == years[-1]
+        year_df = cumulative_distance_df[cumulative_distance_df["Year"] == year]
+        line32_fig.add_trace(
+            go.Scatter(
+                x=year_df["Month"],
+                y=year_df["Cumulative Distance"],
+                mode="lines+markers",
+                line=dict(
+                    color=PRIMARY_GREEN if is_latest_year else EARLIER_YEAR_COLORS[i % len(EARLIER_YEAR_COLORS)],
+                    width=3 if is_latest_year else 1.5,
+                ),
+                marker=dict(size=5),
+                hovertemplate="%{x} " + str(year) + ": %{y:,.2f} km<extra></extra>",
+                name=str(year),
+            )
+        )
+    line32_fig.update_layout(
+        title=f"Annual Distance Progression ({ANNUAL_CUMULATIVE_START_YEAR} onwards)",
+        xaxis=dict(
+            type="category",
+            categoryorder="array",
+            categoryarray=month_order,
+            title=None,
+        ),
+        yaxis=dict(title="Cumulative Run Distance (km)"),
+        legend=dict(title="Year"),
+        margin=dict(t=40, b=20, l=10, r=10),
+    )
+    st.plotly_chart(line32_fig, width="stretch", theme="streamlit")
+
+    # --- Row 2: Annual Distance Comparison (Table33) ---
+    # Pivot: Month on rows, Year on columns - blank cells are months the
+    # current year hasn't reached yet.
+    comparison_pivot_df = cumulative_distance_df.pivot(
+        index="Month Number", columns="Year", values="Cumulative Distance"
+    )
+    comparison_pivot_df.index = [
+        calendar.month_name[m] for m in comparison_pivot_df.index
+    ]
+    comparison_pivot_df.index.name = "Month"
+    comparison_pivot_df.columns = [str(year) for year in comparison_pivot_df.columns]
+
+    st.subheader("Annual Distance Comparison")
+    st.dataframe(
+        comparison_pivot_df,
+        column_config={
+            str(year): st.column_config.NumberColumn(format="%,.2f km") for year in years
+        },
+        width="stretch",
+    )
+
+    # --- Row 3: Monthly Distance Distribution (Bar34) ---
+    monthly_distribution_df = calculate_monthly_distance_distribution(
+        runs_df, ANNUAL_CUMULATIVE_START_YEAR, CALCULATION_DATE
+    )
+
+    bar34_fig = go.Figure()
+    bar34_fig.add_trace(
+        go.Bar(
+            x=monthly_distribution_df["Month"],
+            y=monthly_distribution_df["Average Distance"],
+            marker=dict(color=PRIMARY_GREEN),
+            hovertemplate="%{x}: %{y:,.2f} km<extra></extra>",
+            name="Average Distance",
+        )
+    )
+    bar34_fig.update_layout(
+        title=(
+            f"Monthly Distance Distribution "
+            f"({ANNUAL_CUMULATIVE_START_YEAR} onwards, complete months only)"
+        ),
+        xaxis=dict(
+            type="category",
+            categoryorder="array",
+            categoryarray=monthly_distribution_df["Month"].tolist(),
+            title=None,
+        ),
+        yaxis=dict(title="Average Run Distance (km)"),
+        showlegend=False,
+        margin=dict(t=40, b=20, l=10, r=10),
+    )
+    st.plotly_chart(bar34_fig, width="stretch", theme="streamlit")

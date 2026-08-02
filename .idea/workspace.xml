@@ -6,9 +6,24 @@
   <component name="ChangeListManager">
     <list default="true" id="fa2787fd-4a65-4760-bced-151d7eb01d78" name="Changes" comment="Running Analytics update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/runs.parquet" beforeDir="false" afterPath="$PROJECT_DIR$/data/runs.parquet" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Ingest_Transform_v1.1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Ingest_Transform_v1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app_v1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app_v2.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/data_helpers.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_helpers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pages/quality.py" beforeDir="false" afterPath="$PROJECT_DIR$/pages/quality.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_helpers_v1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_helpers_v2.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_helpers_v3.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_helpers_v4.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_helpers_v5.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_helpers_v6.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pages/best_times_v1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pages/distance.py" beforeDir="false" afterPath="$PROJECT_DIR$/pages/distance.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pages/distance_v1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pages/distance_v2.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pages/overview_v1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pages/quality_v1.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/transform_v1.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -226,7 +241,15 @@
       <option name="project" value="LOCAL" />
       <updated>1785530976894</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="Running Analytics update">
+      <option name="closed" value="true" />
+      <created>1785618150618</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1785618150618</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
