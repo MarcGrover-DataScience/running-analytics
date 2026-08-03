@@ -21,7 +21,6 @@ a straightforward shared function.
 """
 
 from datetime import datetime, timedelta
-import calendar
 import math
 
 import pandas as pd
@@ -284,110 +283,6 @@ def calculate_favourite_runs(
 # ==============================================================
 # ANNUAL PROGRESSION CALCULATION HELPERS (Best Times page)
 # ==============================================================
-# ==============================================================
-# FAVOURITE RUNS TAB (Best Times page) CALCULATION HELPERS
-# ==============================================================
-def get_favourite_run_reference_row(
-    favourite_runs_reference: pd.DataFrame, favourite_run_name: str
-) -> pd.Series:
-    """Look up a single row from the Favourite Runs reference list by its
-    display name (e.g. 'Hampshire 12.8km') - used to resolve the Favourite
-    Runs tab's filter selection into a Distance + Location to match runs
-    against."""
-    matches = favourite_runs_reference[
-        favourite_runs_reference["Favourite Run Name"] == favourite_run_name
-    ]
-    return matches.iloc[0]
-
-
-def filter_runs_for_favourite_run(df: pd.DataFrame, favourite_run_row: pd.Series) -> pd.DataFrame:
-    """Filter the full runs dataset down to just the runs matching a
-    single Favourite Run (Distance rounded to 2dp AND Location) - the
-    same matching rule used by calculate_favourite_runs."""
-    target_distance = round(favourite_run_row["Distance"], 2)
-    return df[
-        (df["Run Distance"].round(2) == target_distance)
-        & (df["Run Location"] == favourite_run_row["Location"])
-    ]
-
-
-def get_best_time_row(filtered_df: pd.DataFrame):
-    """The row with the minimum Run Time - ties broken by the most
-    recent Date. Returns None if filtered_df is empty. Basis for the
-    Favourite Runs tab's Best Time / Best Pace / Best Time (Month) KPIs,
-    which all read off this same row. Family Runs are NOT excluded here,
-    consistent with how the existing Favourite Runs Overall Bests tables
-    (calculate_favourite_runs) determine best times."""
-    if filtered_df.empty:
-        return None
-    working_df = filtered_df.copy()
-    working_df["_time_seconds"] = working_df["Run Time (hh:mm:ss)"].apply(
-        parse_hhmmss_to_seconds
-    )
-    min_time_seconds = working_df["_time_seconds"].min()
-    candidates = working_df[working_df["_time_seconds"] == min_time_seconds]
-    return candidates.loc[candidates["Date"].idxmax()]
-
-
-def kpi_average_time_seconds(df: pd.DataFrame) -> float:
-    """Average Run Time (in seconds), excluding Family Runs - consistent
-    with the project's Average Pace convention (kpi_average_pace_seconds),
-    since Average Time and Average Pace carry the same information for a
-    fixed-distance Favourite Run."""
-    non_family = df[df["Family Run"] == "No"]
-    time_seconds = non_family["Run Time (hh:mm:ss)"].apply(parse_hhmmss_to_seconds)
-    return time_seconds.mean()
-
-
-def calculate_favourite_run_top_n(filtered_df: pd.DataFrame, n: int) -> pd.DataFrame:
-    """Top n fastest runs for a Favourite Run (Table40 - Top 10 Runs),
-    fastest first. Returns columns: Rank, Month, Time, Pace, Quality."""
-    working_df = filtered_df.copy()
-    working_df["_time_seconds"] = working_df["Run Time (hh:mm:ss)"].apply(
-        parse_hhmmss_to_seconds
-    )
-    working_df = working_df.sort_values("_time_seconds").head(n).reset_index(drop=True)
-    working_df["Rank"] = working_df.index + 1
-    working_df["Month"] = working_df["Date"].dt.strftime("%b-%y")
-    working_df = working_df.rename(
-        columns={
-            "Run Time (hh:mm:ss)": "Time",
-            "Running Pace (min/km)": "Pace",
-            "Run Quality": "Quality",
-        }
-    )
-    return working_df[["Rank", "Month", "Time", "Pace", "Quality"]]
-
-
-def calculate_favourite_run_recent_n(filtered_df: pd.DataFrame, n: int) -> pd.DataFrame:
-    """Most recent n runs for a Favourite Run (Table42 - Recent 5 Runs),
-    most recent first. Returns columns: Month, Time, Pace, Quality."""
-    working_df = filtered_df.sort_values("Date", ascending=False).head(n).reset_index(drop=True)
-    working_df["Month"] = working_df["Date"].dt.strftime("%b-%y")
-    working_df = working_df.rename(
-        columns={
-            "Run Time (hh:mm:ss)": "Time",
-            "Running Pace (min/km)": "Pace",
-            "Run Quality": "Quality",
-        }
-    )
-    return working_df[["Month", "Time", "Pace", "Quality"]]
-
-
-def calculate_favourite_run_all_time_series(filtered_df: pd.DataFrame) -> pd.DataFrame:
-    """All runs for a Favourite Run, oldest to newest - basis for the
-    'All Time' line chart (Line41). Time Seconds is the plotted value;
-    Time/Month are the formatted hover-text fields. Returns columns:
-    Month, Time, Time Seconds."""
-    working_df = filtered_df.sort_values("Date").reset_index(drop=True).copy()
-    working_df["Time Seconds"] = working_df["Run Time (hh:mm:ss)"].apply(
-        parse_hhmmss_to_seconds
-    )
-    working_df["Month"] = working_df["Date"].dt.strftime("%b-%y")
-    working_df = working_df.rename(columns={"Run Time (hh:mm:ss)": "Time"})
-    return working_df[["Month", "Time", "Time Seconds"]]
-
-
 def calculate_annual_progression_pb(df: pd.DataFrame, personal_bests_reference: pd.DataFrame):
     """Build a Year x Distance pivot of the best (minimum) time per year,
     for each Personal Best distance. Returns two same-shaped DataFrames
@@ -529,80 +424,6 @@ def calculate_monthly_moving_average_distance(
         result["Run Distance"].rolling(window=window, min_periods=window).mean()
     )
     return result[["Month", "Moving Average Distance"]]
-
-
-def calculate_annual_cumulative_distance(df: pd.DataFrame, start_year: int) -> pd.DataFrame:
-    """Cumulative Run Distance per month, within each calendar year, for
-    years >= start_year - the basis for both the Annual Cumulative tab's
-    line chart (Line32) and pivot table (Table33). E.g. the value for
-    June 2026 is the total distance run from January to June 2026
-    inclusive. A year stops at whatever its most recent month with data
-    is (no projection into months not yet reached) - a month with zero
-    runs part-way through a year still gets a row, with the cumulative
-    total simply carried forward flat, so the line doesn't drop to zero.
-    Returns columns: Year, Month Number (1-12), Month (month name),
-    Cumulative Distance."""
-    working_df = df[df["Date"].dt.year >= start_year].copy()
-    working_df["Year"] = working_df["Date"].dt.year
-    working_df["Month Number"] = working_df["Date"].dt.month
-
-    monthly_totals = working_df.groupby(["Year", "Month Number"], as_index=False)[
-        "Run Distance"
-    ].sum()
-
-    year_frames = []
-    for year, year_group in monthly_totals.groupby("Year"):
-        max_month = year_group["Month Number"].max()
-        full_months = pd.DataFrame({"Month Number": range(1, max_month + 1)})
-        year_full = full_months.merge(
-            year_group[["Month Number", "Run Distance"]], on="Month Number", how="left"
-        )
-        year_full["Run Distance"] = year_full["Run Distance"].fillna(0.0)
-        year_full["Year"] = year
-        year_full["Cumulative Distance"] = year_full["Run Distance"].cumsum()
-        year_frames.append(year_full)
-
-    result = pd.concat(year_frames, ignore_index=True)
-    result["Month"] = result["Month Number"].apply(lambda m: calendar.month_name[m])
-    return result[["Year", "Month Number", "Month", "Cumulative Distance"]]
-
-
-def calculate_monthly_distance_distribution(
-    df: pd.DataFrame, start_year: int, as_of: datetime
-) -> pd.DataFrame:
-    """Average total Run Distance per calendar month (Jan-Dec), across
-    all years from start_year to the current year - the basis for the
-    Annual Cumulative tab's Monthly Distance Distribution bar chart
-    (Bar34). The current, still-in-progress calendar month (as_of.year /
-    as_of.month - normally datetime.today() at the time the page is
-    rendered) is excluded, so a partial month doesn't skew that month's
-    average low; prior years' occurrences of the same month number are
-    unaffected. Returns columns: Month Number (1-12), Month (month
-    name), Average Distance."""
-    working_df = df[df["Date"].dt.year >= start_year].copy()
-    working_df["Year"] = working_df["Date"].dt.year
-    working_df["Month Number"] = working_df["Date"].dt.month
-
-    is_current_month = (working_df["Year"] == as_of.year) & (
-        working_df["Month Number"] == as_of.month
-    )
-    working_df = working_df[~is_current_month]
-
-    monthly_totals = working_df.groupby(["Year", "Month Number"], as_index=False)[
-        "Run Distance"
-    ].sum()
-    average_by_month = (
-        monthly_totals.groupby("Month Number", as_index=False)["Run Distance"]
-        .mean()
-        .rename(columns={"Run Distance": "Average Distance"})
-    )
-
-    # Every month 1-12 is included even if it has no complete occurrence
-    # yet in the range (e.g. start_year's first partial calendar year).
-    all_months = pd.DataFrame({"Month Number": range(1, 13)})
-    result = all_months.merge(average_by_month, on="Month Number", how="left")
-    result["Month"] = result["Month Number"].apply(lambda m: calendar.month_name[m])
-    return result[["Month Number", "Month", "Average Distance"]]
 
 
 def calculate_annual_summary(df: pd.DataFrame) -> pd.DataFrame:
