@@ -165,8 +165,8 @@ st.dataframe(
         "Average Quality": st.column_config.ProgressColumn(
             format="%.1f%%", min_value=0, max_value=110
         ),
-        "Maximum Quality": st.column_config.NumberColumn(format="%.1f%%"),
-        "Form": st.column_config.NumberColumn(format="%.1f"),
+        "Maximum Quality": st.column_config.NumberColumn(format="%.1f%%", alignment="left"),
+        "Form": st.column_config.NumberColumn(format="%.1f", alignment="left"),
     },
     hide_index=True,
     width="stretch",

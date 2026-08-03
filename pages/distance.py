@@ -139,9 +139,13 @@ with trends_tab:
                 "Average Quality": st.column_config.ProgressColumn(
                     format="%.1f%%", min_value=0, max_value=110
                 ),
-                "Average Distance": st.column_config.NumberColumn(format="%.2f km"),
-                "Maximum Quality": st.column_config.NumberColumn(format="%.1f%%"),
-                "Runs": st.column_config.NumberColumn(format="%d"),
+                "Average Distance": st.column_config.NumberColumn(
+                    format="%.2f km", alignment="left"
+                ),
+                "Maximum Quality": st.column_config.NumberColumn(
+                    format="%.1f%%", alignment="left"
+                ),
+                "Runs": st.column_config.NumberColumn(format="%d", alignment="left"),
             },
             hide_index=True,
             width="stretch",
@@ -240,7 +244,8 @@ with annual_cumulative_tab:
     st.dataframe(
         comparison_pivot_df,
         column_config={
-            str(year): st.column_config.NumberColumn(format="%,.2f km") for year in years
+            str(year): st.column_config.NumberColumn(format="%,.2f km", alignment="left")
+            for year in years
         },
         width="stretch",
     )

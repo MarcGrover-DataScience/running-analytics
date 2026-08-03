@@ -177,6 +177,7 @@ with tab_favourite_runs:
     st.dataframe(
         display_top_10_df,
         column_config={
+            "Rank": st.column_config.NumberColumn(alignment="left"),
             "Quality": st.column_config.ProgressColumn(
                 format="%.1f%%", min_value=0, max_value=110
             ),
