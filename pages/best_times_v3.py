@@ -4,9 +4,7 @@ Running Analytics - Best Times Page
 
 Three tabs:
   - Overall Bests: 4 tables (PB all-time / since 2020, Favourite Runs
-    all-time, Best Runs in Past Year), each with a Run Quality data-bar
-    column - except Best Runs in Past Year, which has no data bar and
-    so is left-aligned throughout, per the project's alignment standard.
+    all-time / since 2020), each with a Run Quality data-bar column.
   - Annual Progression: 2 pivot tables (Year x Distance / Year x
     Favourite Run) showing the best time per year, with the overall
     best time per distance highlighted.
@@ -24,7 +22,6 @@ import streamlit as st
 from data_helpers import (
     calculate_annual_progression_favourite_runs,
     calculate_annual_progression_pb,
-    calculate_best_runs_past_year,
     calculate_favourite_run_all_time_series,
     calculate_favourite_run_recent_n,
     calculate_favourite_run_top_n,
@@ -73,21 +70,6 @@ def render_best_times_table(table):
     )
 
 
-def render_best_runs_past_year_table(table):
-    """No data bar on this table (unlike render_best_times_table above),
-    so every field - including Run Quality - is left-aligned, per the
-    project's alignment standard."""
-    st.dataframe(
-        prepare_quality_display(table),
-        column_config={
-            "Run Distance": st.column_config.NumberColumn(format="%.2f km", alignment="left"),
-            "Run Quality": st.column_config.NumberColumn(format="%.1f%%", alignment="left"),
-        },
-        hide_index=True,
-        width="stretch",
-    )
-
-
 tab_overall, tab_annual, tab_favourite_runs = st.tabs(
     ["Overall Bests", "Annual Progression", "Favourite Runs"]
 )
@@ -112,8 +94,10 @@ with tab_overall:
         st.markdown("**Favourite Runs (All Time)**")
         render_best_times_table(calculate_favourite_runs(df, reference["favourite_runs"]))
     with row2_col2:
-        st.markdown("**Best Runs in Past Year**")
-        render_best_runs_past_year_table(calculate_best_runs_past_year(df))
+        st.markdown("**Favourite Runs (Since 2020)**")
+        render_best_times_table(
+            calculate_favourite_runs(df, reference["favourite_runs"], since_date=SINCE_2020)
+        )
 
 
 # ==============================================================

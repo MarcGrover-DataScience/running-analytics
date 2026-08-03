@@ -287,27 +287,6 @@ def calculate_favourite_runs(
 # ==============================================================
 # FAVOURITE RUNS TAB (Best Times page) CALCULATION HELPERS
 # ==============================================================
-def calculate_best_runs_past_year(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
-    """Best Runs in Past Year (Best Times page, Overall Bests tab): top n
-    runs by Run Quality (highest first) among runs where In Last Year =
-    1. Family Runs are excluded, consistent with the project's Run
-    Quality convention (a Family Run is a deliberately slower run, so a
-    quality-based ranking excludes it). Returns columns: Month, Run
-    Distance, Run Time, Run Pace, Run Quality."""
-    working_df = df[(df["In Last Year"] == 1) & (df["Family Run"] == "No")].copy()
-    working_df = working_df.sort_values("Run Quality", ascending=False).head(n).reset_index(
-        drop=True
-    )
-    working_df["Month"] = working_df["Date"].dt.strftime("%b-%y")
-    working_df = working_df.rename(
-        columns={
-            "Run Time (hh:mm:ss)": "Run Time",
-            "Running Pace (min/km)": "Run Pace",
-        }
-    )
-    return working_df[["Month", "Run Distance", "Run Time", "Run Pace", "Run Quality"]]
-
-
 def get_favourite_run_reference_row(
     favourite_runs_reference: pd.DataFrame, favourite_run_name: str
 ) -> pd.Series:
