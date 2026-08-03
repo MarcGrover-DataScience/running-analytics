@@ -138,7 +138,7 @@ with table_col1:
     st.dataframe(
         personal_bests_display,
         column_config={
-            "Run Quality": st.column_config.NumberColumn(format="%.1f%%"),
+            "Run Quality": st.column_config.NumberColumn(format="%.1f%%", alignment="left"),
         },
         hide_index=True,
         width="stretch",
@@ -148,7 +148,7 @@ with table_col2:
     st.dataframe(
         favourite_runs_display,
         column_config={
-            "Run Quality": st.column_config.NumberColumn(format="%.1f%%"),
+            "Run Quality": st.column_config.NumberColumn(format="%.1f%%", alignment="left"),
         },
         hide_index=True,
         width="stretch",
