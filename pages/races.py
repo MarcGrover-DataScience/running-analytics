@@ -38,9 +38,9 @@ with parkruns_tab:
     locations_display_df = locations_df.copy()
     locations_display_df["Quality"] = locations_display_df["Quality"] * 100
 
-    individual_locations_max_runs = locations_df.loc[
-        locations_df["parkrun"] != "Total", "Runs"
-    ].max()
+    individual_locations_max_runs = int(
+        locations_df.loc[locations_df["parkrun"] != "Total", "Runs"].max()
+    )
 
     st.subheader("parkrun locations")
     st.dataframe(
@@ -69,7 +69,7 @@ with parkruns_tab:
         column_config={
             "Year": st.column_config.NumberColumn(alignment="left"),
             "Runs": st.column_config.ProgressColumn(
-                format="%d", min_value=0, max_value=per_year_df["Runs"].max()
+                format="%d", min_value=0, max_value=int(per_year_df["Runs"].max())
             ),
             "Best Time": st.column_config.TextColumn(alignment="left"),
             "Best Pace": st.column_config.TextColumn(alignment="left"),
