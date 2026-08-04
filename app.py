@@ -37,6 +37,7 @@ pages = [
     st.Page("pages/best_times.py", title="Best Times"),
     st.Page("pages/distance.py", title="Distance"),
     st.Page("pages/quality.py", title="Quality"),
+    st.Page("pages/races.py", title="Races"),
 ]
 
 # Local-only pages: only appear when local_mode is set to true in

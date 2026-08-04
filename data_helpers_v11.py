@@ -423,69 +423,6 @@ def calculate_races_table(df: pd.DataFrame) -> pd.DataFrame:
     return races_df[["Location", "Month", "Distance", "Time", "Pace", "Quality"]]
 
 
-def _summarise_parkrun_group(group_df: pd.DataFrame) -> dict:
-    """Shared per-group calculation for the Races page's parkruns tab
-    (Vis54/Vis55): Runs, Best Time/Best Pace/Month (all read from the
-    single fastest run in the group, ties broken by most recent date,
-    via get_best_time_row), Quality (the group's own Maximum Quality -
-    not necessarily from the same run as Best Time), and Sub-20 (count
-    of runs of 20 minutes or less)."""
-    best_row = get_best_time_row(group_df)
-    time_seconds = group_df["Run Time (hh:mm:ss)"].apply(parse_hhmmss_to_seconds)
-    return {
-        "Runs": len(group_df),
-        "Best Time": best_row["Run Time (hh:mm:ss)"] if best_row is not None else "-",
-        "Best Pace": best_row["Running Pace (min/km)"] if best_row is not None else "-",
-        "Month": best_row["Date"].strftime("%b-%y") if best_row is not None else "-",
-        "Quality": kpi_quality_maximum(group_df),
-        "Sub-20": int((time_seconds <= 20 * 60).sum()),
-    }
-
-
-def calculate_parkrun_locations_summary(df: pd.DataFrame) -> pd.DataFrame:
-    """parkrun locations table (Races page, parkruns tab, Vis54): one
-    row per parkrun Location, across all time (no year restriction),
-    plus a final 'Total' row across all of them. Considers only
-    Race-type runs at a Location containing 'parkrun' (case-insensitive
-    - this also catches variants like 'parkrun buggy - ...' and '... -
-    kids' as their own rows, since each is a distinct Location string).
-    Sorted by Runs descending (Total always last, regardless of its own
-    Runs value). Returns columns: parkrun, Runs, Best Time, Best Pace,
-    Month, Quality, Sub-20."""
-    parkrun_df = df[
-        (df["Run Type"] == "Race") & (df["Run Location"].str.contains("parkrun", case=False))
-    ]
-
-    rows = [
-        {"parkrun": location, **_summarise_parkrun_group(location_df)}
-        for location, location_df in parkrun_df.groupby("Run Location")
-    ]
-    result = pd.DataFrame(rows).sort_values("Runs", ascending=False).reset_index(drop=True)
-
-    total_row = pd.DataFrame([{"parkrun": "Total", **_summarise_parkrun_group(parkrun_df)}])
-    result = pd.concat([result, total_row], ignore_index=True)
-    return result[["parkrun", "Runs", "Best Time", "Best Pace", "Month", "Quality", "Sub-20"]]
-
-
-def calculate_parkruns_per_year_summary(df: pd.DataFrame) -> pd.DataFrame:
-    """parkruns per year table (Races page, parkruns tab, Vis55): one
-    row per calendar year (from Run Date), most recent year first. Same
-    Race-type + 'parkrun' Location filter as
-    calculate_parkrun_locations_summary, across all time. Returns
-    columns: Year, Runs, Best Time, Best Pace, Month, Quality, Sub-20."""
-    parkrun_df = df[
-        (df["Run Type"] == "Race") & (df["Run Location"].str.contains("parkrun", case=False))
-    ].copy()
-    parkrun_df["Year"] = parkrun_df["Date"].dt.year
-
-    rows = [
-        {"Year": year, **_summarise_parkrun_group(year_df)}
-        for year, year_df in parkrun_df.groupby("Year")
-    ]
-    result = pd.DataFrame(rows).sort_values("Year", ascending=False).reset_index(drop=True)
-    return result[["Year", "Runs", "Best Time", "Best Pace", "Month", "Quality", "Sub-20"]]
-
-
 def get_favourite_run_reference_row(
     favourite_runs_reference: pd.DataFrame, favourite_run_name: str
 ) -> pd.Series:
