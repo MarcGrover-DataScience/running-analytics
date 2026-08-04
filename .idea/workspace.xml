@@ -6,7 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="fa2787fd-4a65-4760-bced-151d7eb01d78" name="Changes" comment="Running Analytics update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pages/overview.py" beforeDir="false" afterPath="$PROJECT_DIR$/pages/overview.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -256,7 +255,23 @@
       <option name="project" value="LOCAL" />
       <updated>1785782877302</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="Running Analytics update">
+      <option name="closed" value="true" />
+      <created>1785783684400</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1785783684400</updated>
+    </task>
+    <task id="LOCAL-00024" summary="Running Analytics update">
+      <option name="closed" value="true" />
+      <created>1785784133235</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1785784133235</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
