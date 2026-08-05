@@ -2,8 +2,8 @@
 Running Analytics - Distance Page
 ====================================
 
-Built one tab at a time, per the project's visuals-spec process. Trends,
-Annual Cumulative and Ranges are built.
+Built one tab at a time, per the project's visuals-spec process. Trends
+and Annual Cumulative are built (Ranges to follow).
 """
 
 from datetime import datetime
@@ -16,12 +16,10 @@ import streamlit as st
 from data_helpers import (
     calculate_annual_cumulative_distance,
     calculate_annual_summary,
-    calculate_distance_heat_map,
     calculate_monthly_distance_distribution,
     calculate_monthly_distance_trend,
     calculate_monthly_moving_average_distance,
     calculate_monthly_summary,
-    calculate_run_distance_histogram,
     load_runs_data,
 )
 
@@ -35,9 +33,7 @@ st.title("Distance")
 
 runs_df = load_runs_data()
 
-trends_tab, annual_cumulative_tab, ranges_tab = st.tabs(
-    ["Trends", "Annual Cumulative", "Ranges"]
-)
+trends_tab, annual_cumulative_tab = st.tabs(["Trends", "Annual Cumulative"])
 
 
 # ==============================================================
@@ -285,82 +281,3 @@ with annual_cumulative_tab:
         margin=dict(t=40, b=20, l=10, r=10),
     )
     st.plotly_chart(bar34_fig, width="stretch", theme="streamlit")
-
-
-# ==============================================================
-# RANGES TAB
-# ==============================================================
-with ranges_tab:
-
-    # --- Row 1: Run Distribution (Ran1) ---
-    # Year filter scoped to this one chart only (a plain local variable,
-    # not shared session_state) - multi-select, defaulting to 2026.
-    HISTOGRAM_BIN_WIDTH_KM = 2.0
-
-    years_available = sorted(runs_df["Date"].dt.year.unique().tolist(), reverse=True)
-    selected_years = st.multiselect(
-        "Year",
-        options=years_available,
-        default=[2026] if 2026 in years_available else years_available[:1],
-    )
-
-    if selected_years:
-        histogram_df, kde_x, kde_y = calculate_run_distance_histogram(
-            runs_df, selected_years, bin_width=HISTOGRAM_BIN_WIDTH_KM
-        )
-
-        ran1_fig = go.Figure()
-        ran1_fig.add_trace(
-            go.Bar(
-                x=histogram_df["Bin Midpoint"],
-                y=histogram_df["Count"],
-                width=HISTOGRAM_BIN_WIDTH_KM * 0.9,
-                marker=dict(color=PRIMARY_GREEN),
-                customdata=histogram_df["Bin Label"],
-                hovertemplate="%{customdata}: %{y} runs<extra></extra>",
-                name="Runs",
-            )
-        )
-        if len(kde_x):
-            # Rescaled to the same count scale as the bars above
-            # (density * n * bin width), rather than a separate density
-            # axis, so both traces read naturally off one y-axis.
-            ran1_fig.add_trace(
-                go.Scatter(
-                    x=kde_x,
-                    y=kde_y,
-                    mode="lines",
-                    line=dict(color=SECONDARY_BLUE, width=2),
-                    hoverinfo="skip",
-                    name="KDE",
-                )
-            )
-        ran1_fig.update_layout(
-            title="Run Distribution",
-            xaxis=dict(
-                title="Run Distance (km)",
-                tickmode="array",
-                tickvals=histogram_df["Bin Midpoint"].tolist(),
-                ticktext=histogram_df["Bin Label"].tolist(),
-            ),
-            yaxis=dict(title="Count of Runs"),
-            bargap=0.1,
-            margin=dict(t=40, b=20, l=10, r=10),
-        )
-        st.plotly_chart(ran1_fig, width="stretch", theme="streamlit")
-    else:
-        st.info("Select at least one year to show the Run Distribution chart.")
-
-    # --- Row 2: Distance Heat Map (Ran2) ---
-    # Count per cell, colour-coded with a green gradient (lighter =
-    # fewer runs, darker = more) via a pandas Styler - the same solid
-    # per-cell background-color mechanism used for Form Difference on
-    # the Quality page, just driven by a colour map (background_gradient)
-    # instead of a manual sign check. This isn't given the alignment
-    # standard's usual left-align treatment, since - like a data bar -
-    # the colour itself is already the primary visual encoding here.
-    heat_map_df = calculate_distance_heat_map(runs_df, datetime(2012, 1, 1))
-    styled_heat_map = heat_map_df.style.background_gradient(cmap="Greens", axis=None)
-
-    st.subheader("Distance Heat Map")
-    st.dataframe(styled_heat_map, width="stretch")

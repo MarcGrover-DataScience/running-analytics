@@ -25,9 +25,7 @@ import calendar
 import math
 
 import pandas as pd
-import numpy as np
 import streamlit as st
-from scipy.stats import gaussian_kde
 
 # ==============================================================
 # CONFIGURATION
@@ -317,30 +315,24 @@ def kpi_average_distance(df: pd.DataFrame) -> float:
     return df["Run Distance"].mean()
 
 
-# The project's Distance Range bucket order (matches
-# calculate_distance_range in transform.py) - shorter runs first, not
-# alphabetical. Shared by any function that needs to present Distance
-# Range categories in their natural order.
-DISTANCE_RANGE_ORDER = [
-    "< 4",
-    "4 -> 6",
-    "6 -> 8",
-    "8 -> 10",
-    "10 -> 12",
-    "12 -> 14",
-    "14 -> 16",
-    "16 -> 20",
-    "> 20",
-]
-
-
 def calculate_distance_range_distribution(df: pd.DataFrame) -> pd.DataFrame:
     """Count of runs within each Distance Range, for runs where In Last
     Year = 1 - basis for the Recent Running Profile tab's Distance
     Profile pie chart (Vis50). Distance Ranges with zero runs in the
     period are dropped (a zero-size pie slice isn't meaningful). Returns
-    columns: Distance Range, Count, in DISTANCE_RANGE_ORDER (not
-    alphabetical)."""
+    columns: Distance Range, Count, in the same bucket order as
+    calculate_distance_range in transform.py (not alphabetical)."""
+    DISTANCE_RANGE_ORDER = [
+        "< 4",
+        "4 -> 6",
+        "6 -> 8",
+        "8 -> 10",
+        "10 -> 12",
+        "12 -> 14",
+        "14 -> 16",
+        "16 -> 20",
+        "> 20",
+    ]
     rolling_year_df = df[df["In Last Year"] == 1]
     counts = rolling_year_df["Distance Range"].value_counts()
     result = pd.DataFrame(
@@ -492,67 +484,6 @@ def calculate_parkruns_per_year_summary(df: pd.DataFrame) -> pd.DataFrame:
     ]
     result = pd.DataFrame(rows).sort_values("Year", ascending=False).reset_index(drop=True)
     return result[["Year", "Runs", "Best Time", "Best Pace", "Month", "Quality", "Sub-20"]]
-
-
-def calculate_run_distance_histogram(
-    df: pd.DataFrame, selected_years: list, bin_width: float = 2.0
-):
-    """Run Distance histogram + KDE curve data (Distance page, Ranges
-    tab, Ran1), for the given selected year(s). Bins are bin_width km
-    wide, starting at 0km, sized to the selected years' own maximum
-    distance (not the full dataset's) - the bin range and x-axis resize
-    to whichever year(s) are picked. The KDE curve is rescaled to the
-    same count scale as the histogram bars (density * n * bin_width) -
-    the standard way to overlay a KDE on a count histogram on a single
-    y-axis, rather than needing its own separate density axis. Returns a
-    tuple: (histogram_df, kde_x, kde_y) - histogram_df has columns Bin
-    Midpoint / Bin Label / Count, for the bar chart; kde_x/kde_y (numpy
-    arrays, both empty if there are fewer than 2 distinct distance
-    values) are the KDE line's coordinates, on the same km x-axis."""
-    year_df = df[df["Date"].dt.year.isin(selected_years)]
-    distances = year_df["Run Distance"].dropna()
-
-    if distances.empty:
-        return pd.DataFrame(columns=["Bin Midpoint", "Bin Label", "Count"]), np.array([]), np.array([])
-
-    max_distance = distances.max()
-    num_bins = math.ceil(max_distance / bin_width)
-    bin_edges = np.array([i * bin_width for i in range(num_bins + 1)])
-
-    bin_counts, _ = np.histogram(distances, bins=bin_edges)
-    bin_midpoints = (bin_edges[:-1] + bin_edges[1:]) / 2
-    bin_labels = [
-        f"{bin_edges[i]:.0f}-{bin_edges[i + 1]:.0f}km" for i in range(len(bin_edges) - 1)
-    ]
-    histogram_df = pd.DataFrame(
-        {"Bin Midpoint": bin_midpoints, "Bin Label": bin_labels, "Count": bin_counts}
-    )
-
-    kde_x, kde_y = np.array([]), np.array([])
-    if len(distances) >= 2 and distances.nunique() > 1:
-        kde = gaussian_kde(distances)
-        kde_x = np.linspace(0, max_distance, 200)
-        kde_y = kde(kde_x) * len(distances) * bin_width
-
-    return histogram_df, kde_x, kde_y
-
-
-def calculate_distance_heat_map(df: pd.DataFrame, start_date: datetime) -> pd.DataFrame:
-    """Year x Distance Range pivot (Distance page, Ranges tab, Ran2):
-    count of runs per Distance Range per calendar year, for runs from
-    start_date onwards. Rows (Year) are most recent first; columns
-    (Distance Range) follow DISTANCE_RANGE_ORDER (shorter runs on the
-    left). A Distance Range with no runs in a given year shows as 0, not
-    blank, since colour-coding a heat map needs a real (low) value in
-    every cell rather than a gap."""
-    working_df = df[df["Date"] >= start_date].copy()
-    working_df["Year"] = working_df["Date"].dt.year
-
-    pivot = pd.crosstab(working_df["Year"], working_df["Distance Range"])
-    pivot = pivot.reindex(columns=DISTANCE_RANGE_ORDER, fill_value=0)
-    pivot = pivot.sort_index(ascending=False)
-    pivot.index.name = "Year"
-    return pivot
 
 
 def get_favourite_run_reference_row(
