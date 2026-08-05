@@ -3,3 +3,5 @@ openpyxl
 pyarrow
 streamlit
 plotly
+scipy
+matplotlib
