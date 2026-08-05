@@ -38,6 +38,7 @@ pages = [
     st.Page("pages/distance.py", title="Distance"),
     st.Page("pages/quality.py", title="Quality"),
     st.Page("pages/races.py", title="Races"),
+    st.Page("pages/geography.py", title="Geography"),
 ]
 
 # Local-only pages: only appear when local_mode is set to true in

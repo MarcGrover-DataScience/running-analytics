@@ -150,13 +150,8 @@ def kpi_average_pace_seconds(df: pd.DataFrame) -> float:
     fundamentally a run-quality measure - Family Runs are runs where I'm
     deliberately running slower, so (per the project's metric-notes
     convention) they're excluded here, the same as Average/Maximum
-    Quality. NaN if there are no non-Family-Run rows (e.g. a group made
-    up entirely of Family Runs) - pandas can't take the mean of an empty
-    string-typed column, so this is checked explicitly rather than
-    relying on .mean() to handle it."""
+    Quality."""
     non_family = df[df["Family Run"] == "No"]
-    if non_family.empty:
-        return math.nan
     pace_seconds = non_family["Running Pace (min/km)"].apply(parse_mmss_to_seconds)
     return pace_seconds.mean()
 
@@ -558,64 +553,6 @@ def calculate_distance_heat_map(df: pd.DataFrame, start_date: datetime) -> pd.Da
     pivot = pivot.sort_index(ascending=False)
     pivot.index.name = "Year"
     return pivot
-
-
-def calculate_country_summary(df: pd.DataFrame) -> pd.DataFrame:
-    """Countries table (Geography page, Geo1): one row per Country,
-    sorted by Runs descending. Runs/Distance/Average Distance use all
-    runs; Average Quality/Average Pace exclude Family Runs, consistent
-    with the project's quality-metric convention (kpi_quality_average /
-    kpi_average_pace_seconds). Returns columns: Country, Runs, Distance,
-    Average Quality, Average Pace, Average Distance (the last formatted
-    as 'mm:ss')."""
-    rows = [
-        {
-            "Country": country,
-            "Runs": len(group_df),
-            "Distance": group_df["Run Distance"].sum(),
-            "Average Quality": kpi_quality_average(group_df),
-            "Average Pace": format_seconds_to_mmss(kpi_average_pace_seconds(group_df)),
-            "Average Distance": group_df["Run Distance"].mean(),
-        }
-        for country, group_df in df.groupby("Country")
-    ]
-    return pd.DataFrame(rows).sort_values("Runs", ascending=False).reset_index(drop=True)
-
-
-def calculate_location_summary(df: pd.DataFrame) -> pd.DataFrame:
-    """Locations table (Geography page, Geo2): one row per Run Location,
-    sorted by Runs descending - every location is returned (not just the
-    top 10), since the table is meant to scroll to lower rows rather
-    than truncate the data. Same field-calculation rules as
-    calculate_country_summary - see that function for details. Returns
-    columns: Location, Runs, Distance, Average Quality, Average Pace,
-    Average Distance (the last formatted as 'mm:ss')."""
-    rows = [
-        {
-            "Location": location,
-            "Runs": len(group_df),
-            "Distance": group_df["Run Distance"].sum(),
-            "Average Quality": kpi_quality_average(group_df),
-            "Average Pace": format_seconds_to_mmss(kpi_average_pace_seconds(group_df)),
-            "Average Distance": group_df["Run Distance"].mean(),
-        }
-        for location, group_df in df.groupby("Run Location")
-    ]
-    return pd.DataFrame(rows).sort_values("Distance", ascending=False).reset_index(drop=True)
-
-
-def calculate_ireland_runs_by_year(df: pd.DataFrame) -> pd.DataFrame:
-    """Ireland runs by year (Geography page, Geo3): Runs (count) and
-    Distance (sum) per calendar year, for Country = 'Ireland' only, most
-    recent year first - this chart is ordered with the most recent year
-    on the left, unlike the rest of the app's charts (which run oldest
-    to newest, left to right). Returns columns: Year, Runs, Distance."""
-    ireland_df = df[df["Country"] == "Ireland"].copy()
-    ireland_df["Year"] = ireland_df["Date"].dt.year
-    result = ireland_df.groupby("Year", as_index=False).agg(
-        Runs=("Run Distance", "count"), Distance=("Run Distance", "sum")
-    )
-    return result.sort_values("Year", ascending=False).reset_index(drop=True)
 
 
 def get_favourite_run_reference_row(
