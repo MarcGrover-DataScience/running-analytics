@@ -299,8 +299,8 @@ def calculate_best_runs_past_year(df: pd.DataFrame, n: int = 10) -> pd.DataFrame
     runs by Run Quality (highest first) among runs where In Last Year =
     1. Family Runs are excluded, consistent with the project's Run
     Quality convention (a Family Run is a deliberately slower run, so a
-    quality-based ranking excludes it). Returns columns: Month,
-    Location, Run Distance, Run Time, Run Pace, Run Quality."""
+    quality-based ranking excludes it). Returns columns: Month, Run
+    Distance, Run Time, Run Pace, Run Quality."""
     working_df = df[(df["In Last Year"] == 1) & (df["Family Run"] == "No")].copy()
     working_df = working_df.sort_values("Run Quality", ascending=False).head(n).reset_index(
         drop=True
@@ -308,14 +308,11 @@ def calculate_best_runs_past_year(df: pd.DataFrame, n: int = 10) -> pd.DataFrame
     working_df["Month"] = working_df["Date"].dt.strftime("%b-%y")
     working_df = working_df.rename(
         columns={
-            "Run Location": "Location",
             "Run Time (hh:mm:ss)": "Run Time",
             "Running Pace (min/km)": "Run Pace",
         }
     )
-    return working_df[
-        ["Month", "Location", "Run Distance", "Run Time", "Run Pace", "Run Quality"]
-    ]
+    return working_df[["Month", "Run Distance", "Run Time", "Run Pace", "Run Quality"]]
 
 
 def kpi_average_distance(df: pd.DataFrame) -> float:
@@ -643,33 +640,6 @@ def filter_runs_for_favourite_run(df: pd.DataFrame, favourite_run_row: pd.Series
         (df["Run Distance"].round(2) == target_distance)
         & (df["Run Location"] == favourite_run_row["Location"])
     ]
-
-
-def get_personal_best_reference_row(
-    personal_bests_reference: pd.DataFrame, distance_name: str
-) -> pd.Series:
-    """Look up a single row from the Personal Bests reference list by its
-    Distance Name (e.g. '5 km') - used to resolve the Personal Bests
-    tab's filter selection into a target Distance to match runs
-    against."""
-    matches = personal_bests_reference[
-        personal_bests_reference["Distance Name"] == distance_name
-    ]
-    return matches.iloc[0]
-
-
-def filter_runs_for_personal_best(df: pd.DataFrame, personal_best_row: pd.Series) -> pd.DataFrame:
-    """Filter the full runs dataset down to just the runs matching a
-    single Personal Best distance (Run Distance rounded to 2dp) - the
-    same matching rule used by calculate_personal_bests. Family Runs are
-    excluded here (unlike filter_runs_for_favourite_run), since every
-    visual on the Personal Bests tab is meant to exclude them; this
-    means every downstream function that's reused from the Favourite
-    Runs tab (get_best_time_row, kpi_average_time_seconds,
-    kpi_average_pace_seconds, etc.) naturally excludes Family Runs too,
-    without needing its own copy."""
-    target_distance = round(personal_best_row["Distance"], 2)
-    return df[(df["Run Distance"].round(2) == target_distance) & (df["Family Run"] == "No")]
 
 
 def get_best_time_row(filtered_df: pd.DataFrame):

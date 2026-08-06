@@ -2,7 +2,7 @@
 Running Analytics - Best Times Page
 ======================================
 
-Four tabs:
+Three tabs:
   - Overall Bests: 4 tables (PB all-time / since 2020, Favourite Runs
     all-time, Best Runs in Past Year), each with a Run Quality data-bar
     column - except Best Runs in Past Year, which has no data bar and
@@ -10,13 +10,6 @@ Four tabs:
   - Annual Progression: 2 pivot tables (Year x Distance / Year x
     Favourite Run) showing the best time per year, with the overall
     best time per distance highlighted.
-  - Personal Bests: KPIs, tables and a chart for a single Personal Best
-    distance at a time, selected via this tab's own filter. Exactly
-    mirrors the Favourite Runs tab below, with two differences: the
-    filter lists Distance Names (not Favourite Run names, default '5
-    km'), and every visual here excludes Family Runs (Favourite Runs
-    only excludes them from Average Time/Average Pace) - baked in once,
-    at the filter stage, via filter_runs_for_personal_best.
   - Favourite Runs: KPIs, tables and a chart for a single Favourite Run
     at a time, selected via this tab's own filter (the first filter in
     the dashboard - scoped to this tab only, no other tab/page is
@@ -38,12 +31,10 @@ from data_helpers import (
     calculate_favourite_runs,
     calculate_personal_bests,
     filter_runs_for_favourite_run,
-    filter_runs_for_personal_best,
     format_seconds_to_hhmmss,
     format_seconds_to_mmss,
     get_best_time_row,
     get_favourite_run_reference_row,
-    get_personal_best_reference_row,
     highlight_column_minimum,
     kpi_average_pace_seconds,
     kpi_average_time_seconds,
@@ -97,8 +88,8 @@ def render_best_runs_past_year_table(table):
     )
 
 
-tab_overall, tab_annual, tab_personal_bests, tab_favourite_runs = st.tabs(
-    ["Overall Bests", "Annual Progression", "Personal Bests", "Favourite Runs"]
+tab_overall, tab_annual, tab_favourite_runs = st.tabs(
+    ["Overall Bests", "Annual Progression", "Favourite Runs"]
 )
 
 
@@ -147,112 +138,7 @@ with tab_annual:
 
 
 # ==============================================================
-# TAB 3: PERSONAL BESTS
-# ==============================================================
-with tab_personal_bests:
-
-    # The tab's own filter - a single Personal Best distance at a time,
-    # defaulting to 5 km. Every visual below is filtered by this
-    # selection; it's a plain local variable (not shared session_state),
-    # so it has no effect outside this tab. Unlike Favourite Runs, the
-    # exclusion of Family Runs is applied once here, inside
-    # filter_runs_for_personal_best - every KPI/table/chart below reuses
-    # the same functions as the Favourite Runs tab unchanged, and simply
-    # inherits the exclusion because it's already baked into filtered_df.
-    distance_names = reference["personal_bests"]["Distance Name"].tolist()
-    DEFAULT_DISTANCE_NAME = "5 km"
-    selected_distance_name = st.selectbox(
-        "Distance",
-        options=distance_names,
-        index=distance_names.index(DEFAULT_DISTANCE_NAME),
-    )
-
-    personal_best_row = get_personal_best_reference_row(
-        reference["personal_bests"], selected_distance_name
-    )
-    filtered_df = filter_runs_for_personal_best(df, personal_best_row)
-
-    # --- Row 1 & 2: KPIs ---
-    best_row = get_best_time_row(filtered_df)
-
-    row1_col1, row1_col2, row1_col3, row1_col4 = st.columns(4)
-    row1_col1.metric("Runs", f"{len(filtered_df):,}")
-    row1_col2.metric("Best Time", best_row["Run Time (hh:mm:ss)"] if best_row is not None else "-")
-    row1_col3.metric("Best Pace", best_row["Running Pace (min/km)"] if best_row is not None else "-")
-    row1_col4.metric(
-        "Best Time (Month)", best_row["Date"].strftime("%b-%y") if best_row is not None else "-"
-    )
-
-    row2_col1, row2_col2, row2_col3, row2_col4 = st.columns(4)
-    row2_col1.metric("Average Time", format_seconds_to_hhmmss(kpi_average_time_seconds(filtered_df)))
-    row2_col2.metric("Average Pace", format_seconds_to_mmss(kpi_average_pace_seconds(filtered_df)))
-    row2_col3.metric(
-        "Last Run",
-        filtered_df["Date"].max().strftime("%b-%y") if not filtered_df.empty else "-",
-    )
-    row2_col4.metric("Runs (Rolling Year)", f"{(filtered_df['In Last Year'] == 1).sum():,}")
-
-    # --- Row 3: Top 10 Runs ---
-    st.subheader("Top 10 Runs")
-    top_10_df = calculate_favourite_run_top_n(filtered_df, 10)
-    display_top_10_df = top_10_df.copy()
-    display_top_10_df["Quality"] = display_top_10_df["Quality"] * 100
-    st.dataframe(
-        display_top_10_df,
-        column_config={
-            "Rank": st.column_config.NumberColumn(alignment="left"),
-            "Quality": st.column_config.ProgressColumn(
-                format="%.1f%%", min_value=0, max_value=110
-            ),
-        },
-        hide_index=True,
-        width="stretch",
-    )
-
-    # --- Row 4: All Time ---
-    all_time_df = calculate_favourite_run_all_time_series(filtered_df)
-
-    line_pb_fig = go.Figure()
-    line_pb_fig.add_trace(
-        go.Scatter(
-            x=list(range(1, len(all_time_df) + 1)),
-            y=all_time_df["Time Seconds"] / 60,
-            mode="lines+markers",
-            line=dict(color=PRIMARY_GREEN, width=2),
-            marker=dict(size=5),
-            customdata=all_time_df[["Time", "Month"]].values,
-            hovertemplate="%{customdata[1]}: %{customdata[0]}<extra></extra>",
-            name="Run Time",
-        )
-    )
-    line_pb_fig.update_layout(
-        title="All Time",
-        xaxis=dict(showticklabels=False, title=None),
-        yaxis=dict(title="Run Time (minutes)"),
-        showlegend=False,
-        margin=dict(t=40, b=20, l=10, r=10),
-    )
-    st.plotly_chart(line_pb_fig, width="stretch", theme="streamlit")
-
-    # --- Row 5: Recent 5 Runs ---
-    st.subheader("Recent 5 Runs")
-    recent_5_df = calculate_favourite_run_recent_n(filtered_df, 5)
-    display_recent_5_df = recent_5_df.copy()
-    display_recent_5_df["Quality"] = display_recent_5_df["Quality"] * 100
-    st.dataframe(
-        display_recent_5_df,
-        column_config={
-            "Quality": st.column_config.ProgressColumn(
-                format="%.1f%%", min_value=0, max_value=110
-            ),
-        },
-        hide_index=True,
-        width="stretch",
-    )
-
-
-# ==============================================================
-# TAB 4: FAVOURITE RUNS
+# TAB 3: FAVOURITE RUNS
 # ==============================================================
 with tab_favourite_runs:
 
