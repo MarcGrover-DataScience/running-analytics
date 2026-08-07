@@ -113,7 +113,7 @@ with tab_summary:
         # Days:hours:minutes:seconds here, rather than plain hh:mm:ss - a
         # rolling year's total running time is large enough (100+ hours)
         # that a day count gives more useful context than hours alone.
-        st.metric("Total Time", format_seconds_to_dhms(kpi_total_time_seconds(rolling_year_df)))
+        st.metric("Total Time (day:hr:min:sec)", format_seconds_to_dhms(kpi_total_time_seconds(rolling_year_df)))
 
     # --- Row 3: All Time ---
     st.subheader("All Time")
@@ -135,7 +135,7 @@ with tab_summary:
         # above - all-time total is large enough (thousands of hours)
         # that a plain hour count loses context entirely without the day
         # breakdown.
-        st.metric("Total Time", format_seconds_to_dhms(kpi_total_time_seconds(df)))
+        st.metric("Total Time (day:hr:min:sec)", format_seconds_to_dhms(kpi_total_time_seconds(df)))
     with cols[4]:
         st.metric("Runs per Month", f"{runs_per_month:,.1f}")
     with cols[5]:
