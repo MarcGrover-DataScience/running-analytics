@@ -22,7 +22,9 @@ A deleted row in the backup file is simply absent from the rebuilt
 dataset - no special handling needed for deletions.
 """
 
+import math
 import os
+import shutil
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -45,6 +47,9 @@ OUTPUT_FOLDER = "data"
 OUTPUT_PARQUET_FILENAME = "runs.parquet"
 BACKUP_OUTPUT_FOLDER = "raw_data"
 OUTPUT_EXCEL_FILENAME = "runs_validation_backup.xlsx"
+
+TIMESTAMP = datetime.now().strftime("%y%m%d_%H%M%S")
+ARCHIVE_EXCEL_FILENAME = f"runs_validation_backup_{TIMESTAMP}.xlsx"
 
 BACKUP_INPUT_PATH = f"{BACKUP_INPUT_FOLDER}/{BACKUP_INPUT_FILENAME}"
 REFERENCE_DATA_PATH = f"{REFERENCE_DATA_FOLDER}/{REFERENCE_DATA_FILENAME}"
@@ -241,6 +246,15 @@ with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
         runs_sheet.column_dimensions[col_letter].width = width
 
 print(f"  Wrote Excel backup: {excel_path}")
+
+# --- 5c. Copy Archived version of regenerated  Excel backup ---
+
+# Create an identical copy of the newly formatted Excel workbook for archiving
+
+archive_path = f"{BACKUP_OUTPUT_FOLDER}/{ARCHIVE_EXCEL_FILENAME}"
+
+shutil.copy2(excel_path, archive_path)
+print(f"  Wrote Excel archive: {archive_path}")
 
 
 # ==============================================================
