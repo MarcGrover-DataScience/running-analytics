@@ -177,10 +177,6 @@ if submitted:
         # Clear the cached data so the next page load reflects this run
         load_runs_data.clear()
 
-        # st.success(
-        #     f"Logged {run_distance:.2f}km run on {run_date.strftime('%d/%m/%Y')} "
-        #     f"({derived['Run Time (hh:mm:ss)']})."
-        # )
 
         pushed, error = push_to_github(
             f"Log run: {run_date.strftime('%d/%m/%Y')} - {run_distance:.2f}km"
