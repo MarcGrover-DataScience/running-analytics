@@ -247,7 +247,7 @@ with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
 
 print(f"  Wrote Excel backup: {excel_path}")
 
-# --- 5c. Copy Archived version of regenerated  Excel backup ---
+# --- 5c. Copy Archived version of regenerated Excel backup ---
 
 # Create an identical copy of the newly formatted Excel workbook for archiving
 

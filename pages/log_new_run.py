@@ -158,6 +158,26 @@ if submitted:
         )
         updated_df.to_parquet(RUNS_PARQUET_PATH, index=False)
 
+        # Keep the backup Excel in sync with anything logged here
+        append_run_to_backup_excel(new_row, BACKUP_EXCEL_PATH)
+
+        # Clear the cached data so the next page load reflects this run
+        load_runs_data.clear()
+
+        # Create Archive version of backup Excel file
+        import math
+        import shutil
+
+        TIMESTAMP = datetime.now().strftime("%y%m%d_%H%M%S")
+        ARCHIVE_EXCEL_FILENAME = f"runs_validation_backup_{TIMESTAMP}.xlsx"
+        BACKUP_OUTPUT_FOLDER = "raw_data"
+
+        archive_path = f"{BACKUP_OUTPUT_FOLDER}/{ARCHIVE_EXCEL_FILENAME}"
+
+        shutil.copy2(BACKUP_EXCEL_PATH, archive_path)
+
+
+
 
         def push_to_github(commit_message: str) -> tuple[bool, str | None]:
             """Commit and push runs.parquet so the public Streamlit Cloud deployment
@@ -170,12 +190,6 @@ if submitted:
                 return True, None
             except subprocess.CalledProcessError as e:
                 return False, e.stderr
-
-        # Keep the backup Excel in sync with anything logged here
-        append_run_to_backup_excel(new_row, BACKUP_EXCEL_PATH)
-
-        # Clear the cached data so the next page load reflects this run
-        load_runs_data.clear()
 
 
         pushed, error = push_to_github(
