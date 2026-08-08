@@ -34,6 +34,8 @@ from transform import (
     mmss_string_to_timedelta,
 )
 
+import subprocess
+
 # The backup Excel file lives outside the app's normal data path (it's
 # gitignored, not committed) - kept as its own constant here since it's
 # only ever touched by local-only scripts/pages, never the public app.
@@ -156,13 +158,41 @@ if submitted:
         )
         updated_df.to_parquet(RUNS_PARQUET_PATH, index=False)
 
+
+        def push_to_github(commit_message: str) -> tuple[bool, str | None]:
+            """Commit and push runs.parquet so the public Streamlit Cloud deployment
+            picks it up. Failures are surfaced but never block logging - the run is
+            already saved locally regardless of whether this succeeds."""
+            try:
+                subprocess.run(["git", "add", RUNS_PARQUET_PATH], check=True, capture_output=True, text=True)
+                subprocess.run(["git", "commit", "-m", commit_message], check=True, capture_output=True, text=True)
+                subprocess.run(["git", "push"], check=True, capture_output=True, text=True)
+                return True, None
+            except subprocess.CalledProcessError as e:
+                return False, e.stderr
+
         # Keep the backup Excel in sync with anything logged here
         append_run_to_backup_excel(new_row, BACKUP_EXCEL_PATH)
 
         # Clear the cached data so the next page load reflects this run
         load_runs_data.clear()
 
+        # st.success(
+        #     f"Logged {run_distance:.2f}km run on {run_date.strftime('%d/%m/%Y')} "
+        #     f"({derived['Run Time (hh:mm:ss)']})."
+        # )
+
+        pushed, error = push_to_github(
+            f"Log run: {run_date.strftime('%d/%m/%Y')} - {run_distance:.2f}km"
+        )
+
         st.success(
             f"Logged {run_distance:.2f}km run on {run_date.strftime('%d/%m/%Y')} "
             f"({derived['Run Time (hh:mm:ss)']})."
         )
+
+        if not pushed:
+            st.warning(
+                f"Saved locally, but the push to GitHub failed - the public "
+                f"dashboard won't reflect this run until it's retried.\n\n{error}"
+            )
