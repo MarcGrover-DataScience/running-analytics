@@ -439,6 +439,24 @@ def calculate_races_table(df: pd.DataFrame) -> pd.DataFrame:
     return races_df[["Location", "Month", "Distance", "Time", "Pace", "Quality"]]
 
 
+def calculate_recent_runs(df: pd.DataFrame) -> pd.DataFrame:
+    """Recent Runs table (Overview page, Recent Running Profile tab):
+    every run where Last Month = 1, most recent first. A plain listing
+    of individual runs rather than a Quality-based aggregate, so - like
+    calculate_best_runs_past_year/calculate_races_table - Family Runs
+    are not excluded. Returns columns: Run Distance, Run Time, Run Pace,
+    Run Quality."""
+    working_df = df[df["Last Month"] == 1].copy()
+    working_df = working_df.sort_values("Date", ascending=False).reset_index(drop=True)
+    working_df = working_df.rename(
+        columns={
+            "Run Time (hh:mm:ss)": "Run Time",
+            "Running Pace (min/km)": "Run Pace",
+        }
+    )
+    return working_df[["Run Distance", "Run Time", "Run Pace", "Run Quality"]]
+
+
 def _summarise_parkrun_group(group_df: pd.DataFrame) -> dict:
     """Shared per-group calculation for the Races page's parkruns tab
     (Vis54/Vis55): Runs, Best Time/Best Pace/Month (all read from the
@@ -969,13 +987,14 @@ def calculate_monthly_distance_distribution(
 def calculate_annual_summary(df: pd.DataFrame) -> pd.DataFrame:
     """Annual Summary table (Distance page, Trends tab): one row per
     calendar year that has at least one run, most recent year first.
-    Distance/Runs/Average Distance are calculated across all runs;
-    Average Quality/Maximum Quality/Average Pace exclude Family Runs, per
-    the project's metric-notes convention (Average Pace is fundamentally
-    a quality measure, and Family Runs are deliberately-slower runs).
-    Returns columns: Year, Distance, Runs, Average Distance, Average
-    Quality, Maximum Quality, Average Pace (the last formatted as
-    'mm:ss')."""
+    Distance/Runs/Average Distance/Longest Run are calculated across all
+    runs; Average Quality/Maximum Quality/Average Pace exclude Family
+    Runs, per the project's metric-notes convention (Average Pace is
+    fundamentally a quality measure, and Family Runs are
+    deliberately-slower runs).
+    Returns columns: Year, Distance, Runs, Average Distance, Longest
+    Run, Average Quality, Maximum Quality, Average Pace (the last
+    formatted as 'mm:ss')."""
     working_df = df.copy()
     working_df["_year"] = working_df["Date"].dt.year
 
@@ -989,6 +1008,7 @@ def calculate_annual_summary(df: pd.DataFrame) -> pd.DataFrame:
                 "Distance": year_df["Run Distance"].sum(),
                 "Runs": len(year_df),
                 "Average Distance": year_df["Run Distance"].mean(),
+                "Longest Run": year_df["Run Distance"].max(),
                 "Average Quality": kpi_quality_average(year_df),
                 "Maximum Quality": kpi_quality_maximum(year_df),
                 "Average Pace": format_seconds_to_mmss(kpi_average_pace_seconds(year_df)),

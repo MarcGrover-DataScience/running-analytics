@@ -130,27 +130,44 @@ with trends_tab:
         consistency; Distance is scaled to that table's own maximum,
         since (unlike quality) it has no natural fixed ceiling. height
         defaults to 'content' (fits all rows, no scrolling) - pass a
-        pixel integer instead for a fixed, scrollable height."""
+        pixel integer instead for a fixed, scrollable height. Longest
+        Run (Annual Summary only - Monthly Summary has no such column)
+        also gets a data-bar, scaled to its own column maximum like
+        Distance. Year (Annual Summary only) is explicitly left-aligned,
+        since Streamlit right-aligns numeric columns by default and
+        Year isn't given its own ProgressColumn/NumberColumn treatment
+        otherwise."""
         display_df = prepare_summary_display(summary_df)
+        column_config = {
+            "Distance": st.column_config.ProgressColumn(
+                format="%,.2f km",
+                min_value=0,
+                max_value=display_df["Distance"].max(),
+            ),
+            "Average Quality": st.column_config.ProgressColumn(
+                format="%.1f%%", min_value=0, max_value=110
+            ),
+            "Average Distance": st.column_config.NumberColumn(
+                format="%.2f km", alignment="left"
+            ),
+            "Maximum Quality": st.column_config.NumberColumn(
+                format="%.1f%%", alignment="left"
+            ),
+            "Runs": st.column_config.NumberColumn(format="%d", alignment="left"),
+        }
+        if "Longest Run" in display_df.columns:
+            column_config["Longest Run"] = st.column_config.ProgressColumn(
+                format="%,.2f km",
+                min_value=0,
+                max_value=display_df["Longest Run"].max(),
+            )
+        if "Year" in display_df.columns:
+            column_config["Year"] = st.column_config.NumberColumn(
+                format="%d", alignment="left"
+            )
         st.dataframe(
             display_df,
-            column_config={
-                "Distance": st.column_config.ProgressColumn(
-                    format="%,.2f km",
-                    min_value=0,
-                    max_value=display_df["Distance"].max(),
-                ),
-                "Average Quality": st.column_config.ProgressColumn(
-                    format="%.1f%%", min_value=0, max_value=110
-                ),
-                "Average Distance": st.column_config.NumberColumn(
-                    format="%.2f km", alignment="left"
-                ),
-                "Maximum Quality": st.column_config.NumberColumn(
-                    format="%.1f%%", alignment="left"
-                ),
-                "Runs": st.column_config.NumberColumn(format="%d", alignment="left"),
-            },
+            column_config=column_config,
             hide_index=True,
             width="stretch",
             height=height,

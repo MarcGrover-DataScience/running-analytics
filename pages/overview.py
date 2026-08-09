@@ -26,6 +26,7 @@ from data_helpers import (
     calculate_parkrun_summary,
     calculate_personal_bests,
     calculate_races_table,
+    calculate_recent_runs,
     calculate_consistency_category,
     format_seconds_to_dhms,
     format_seconds_to_hhmmss,
@@ -280,6 +281,29 @@ with tab_recent_profile:
             column_config={
                 "Distance": st.column_config.NumberColumn(format="%.2f km", alignment="left"),
                 "Quality": st.column_config.ProgressColumn(
+                    format="%.1f%%", min_value=0, max_value=110
+                ),
+            },
+            hide_index=True,
+            width="stretch",
+        )
+
+    # Row 4: Recent Runs (new) - every run from the past calendar month,
+    # most recent first. Half-width, via the same two-column pattern as
+    # the rows above, with the second column left empty.
+    st.subheader("Recent Runs (Last Month)")
+    recent_runs_col, _ = st.columns(2)
+
+    with recent_runs_col:
+        recent_runs_display_df = calculate_recent_runs(df)
+        recent_runs_display_df["Run Quality"] = recent_runs_display_df["Run Quality"] * 100
+        st.dataframe(
+            recent_runs_display_df,
+            column_config={
+                "Run Distance": st.column_config.NumberColumn(format="%.2f km", alignment="left"),
+                "Run Time": st.column_config.TextColumn(alignment="left"),
+                "Run Pace": st.column_config.TextColumn(alignment="left"),
+                "Run Quality": st.column_config.ProgressColumn(
                     format="%.1f%%", min_value=0, max_value=110
                 ),
             },
