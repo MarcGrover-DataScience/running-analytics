@@ -581,6 +581,34 @@ def calculate_distance_heat_map(df: pd.DataFrame, start_date: datetime) -> pd.Da
     return pivot
 
 
+def calculate_annual_long_run_thresholds(df: pd.DataFrame) -> pd.DataFrame:
+    """Year x Distance Threshold pivot (Distance page, Ranges tab, new
+    Row 3): count of runs meeting each of four distance thresholds, per
+    calendar year. Rows (Year) are most recent first. Thresholds are
+    cumulative, not exclusive bins - e.g. a 15km run counts toward
+    >=10km, >=12km AND >=14km (but not >=16km) - the same convention and
+    thresholds as calculate_long_run_tracker (Overview page), applied
+    here across all years rather than just the rolling year. Returns
+    columns: >=10km, >=12km, >=14km, >=16km."""
+    working_df = df.copy()
+    working_df["Year"] = working_df["Date"].dt.year
+
+    THRESHOLDS_KM = [10, 12, 14, 16]
+    years = sorted(working_df["Year"].unique(), reverse=True)
+    rows = []
+    for year in years:
+        year_df = working_df[working_df["Year"] == year]
+        rows.append(
+            {
+                f">={threshold}km": int((year_df["Run Distance"] >= threshold).sum())
+                for threshold in THRESHOLDS_KM
+            }
+        )
+    result_df = pd.DataFrame(rows, index=years)
+    result_df.index.name = "Year"
+    return result_df
+
+
 def calculate_country_summary(df: pd.DataFrame) -> pd.DataFrame:
     """Countries table (Geography page, Geo1): one row per Country,
     sorted by Runs descending. Runs/Distance/Average Distance use all

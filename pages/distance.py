@@ -15,6 +15,7 @@ import streamlit as st
 
 from data_helpers import (
     calculate_annual_cumulative_distance,
+    calculate_annual_long_run_thresholds,
     calculate_annual_summary,
     calculate_distance_heat_map,
     calculate_monthly_distance_distribution,
@@ -381,3 +382,27 @@ with ranges_tab:
 
     st.subheader("Distance Heat Map")
     st.dataframe(styled_heat_map, width="stretch")
+
+    # --- Row 3: Annual Long Run Thresholds (new) ---
+    # Year x Threshold count table, full page width. All four threshold
+    # columns share one common data-bar scale (the single highest count
+    # anywhere in the table) rather than each column having its own
+    # maximum, so bar length is comparable across columns as well as
+    # down them - per the spec. ProgressColumn's format still prints the
+    # count itself alongside the bar.
+    long_run_thresholds_df = calculate_annual_long_run_thresholds(runs_df)
+    shared_max_value = int(long_run_thresholds_df.max().max())
+
+    st.subheader("Annual Long Run Thresholds")
+    st.dataframe(
+        long_run_thresholds_df,
+        column_config={
+            column: st.column_config.ProgressColumn(
+                format="%d",
+                min_value=0,
+                max_value=shared_max_value,
+            )
+            for column in long_run_thresholds_df.columns
+        },
+        width="stretch",
+    )
