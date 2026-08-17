@@ -194,13 +194,14 @@ with tab_personal_bests:
 
     # --- Row 3: Top 10 Runs ---
     st.subheader("Top 10 Runs")
-    top_10_df = calculate_favourite_run_top_n(filtered_df, 10)
+    top_10_df = calculate_favourite_run_top_n(filtered_df, 10, include_location=True)
     display_top_10_df = top_10_df.copy()
     display_top_10_df["Quality"] = display_top_10_df["Quality"] * 100
     st.dataframe(
         display_top_10_df,
         column_config={
             "Rank": st.column_config.NumberColumn(alignment="left"),
+            "Location": st.column_config.TextColumn(alignment="left"),
             "Quality": st.column_config.ProgressColumn(
                 format="%.1f%%", min_value=0, max_value=110
             ),
@@ -236,12 +237,13 @@ with tab_personal_bests:
 
     # --- Row 5: Recent 5 Runs ---
     st.subheader("Recent 5 Runs")
-    recent_5_df = calculate_favourite_run_recent_n(filtered_df, 5)
+    recent_5_df = calculate_favourite_run_recent_n(filtered_df, 5, include_location=True)
     display_recent_5_df = recent_5_df.copy()
     display_recent_5_df["Quality"] = display_recent_5_df["Quality"] * 100
     st.dataframe(
         display_recent_5_df,
         column_config={
+            "Location": st.column_config.TextColumn(alignment="left"),
             "Quality": st.column_config.ProgressColumn(
                 format="%.1f%%", min_value=0, max_value=110
             ),

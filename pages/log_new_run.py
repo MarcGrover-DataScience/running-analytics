@@ -92,28 +92,35 @@ def append_run_to_backup_excel(new_row: dict, path: str):
 # ==============================================================
 # ENTRY FORM
 # ==============================================================
-with st.form("log_new_run_form", clear_on_submit=True):
-    run_date = st.date_input("Date", value=datetime.today())
-    run_type = st.selectbox("Run Type", run_type_options)
-    run_location = st.selectbox("Run Location", run_location_options)
-    run_distance = st.number_input(
-        "Run Distance (km)", min_value=0.01, step=0.01, format="%.2f"
-    )
+# Centred, half-width on the page - a 1:2:1 column split puts the form
+# in the middle column at half the page width, with equal empty space
+# either side, rather than the fields stretching edge to edge (which
+# looks fine on a wide monitor but is awkward on a laptop screen).
+_, form_col, _ = st.columns([1, 2, 1])
 
-    st.write("Run Time")
-    time_col1, time_col2, time_col3 = st.columns(3)
-    with time_col1:
-        hours = st.number_input("Hours", min_value=0, max_value=23, value=0, step=1)
-    with time_col2:
-        minutes = st.number_input("Minutes", min_value=0, max_value=59, value=0, step=1)
-    with time_col3:
-        seconds = st.number_input("Seconds", min_value=0, max_value=59, value=0, step=1)
+with form_col:
+    with st.form("log_new_run_form", clear_on_submit=True):
+        run_date = st.date_input("Date", value=datetime.today())
+        run_type = st.selectbox("Run Type", run_type_options)
+        run_location = st.selectbox("Run Location", run_location_options)
+        run_distance = st.number_input(
+            "Run Distance (km)", min_value=0.01, step=0.01, format="%.2f"
+        )
 
-    country = st.selectbox("Country", country_options)
-    family_run = st.selectbox("Family Run", ["No", "Yes"])
-    notes = st.text_area("Notes", value="")
+        st.write("Run Time")
+        time_col1, time_col2, time_col3 = st.columns(3)
+        with time_col1:
+            hours = st.number_input("Hours", min_value=0, max_value=23, value=0, step=1)
+        with time_col2:
+            minutes = st.number_input("Minutes", min_value=0, max_value=59, value=0, step=1)
+        with time_col3:
+            seconds = st.number_input("Seconds", min_value=0, max_value=59, value=0, step=1)
 
-    submitted = st.form_submit_button("Log Run")
+        country = st.selectbox("Country", country_options)
+        family_run = st.selectbox("Family Run", ["No", "Yes"])
+        notes = st.text_area("Notes", value="")
+
+        submitted = st.form_submit_button("Log Run")
 
 
 if submitted:

@@ -439,6 +439,56 @@ def calculate_races_table(df: pd.DataFrame) -> pd.DataFrame:
     return races_df[["Location", "Month", "Distance", "Time", "Pace", "Quality"]]
 
 
+def calculate_races_per_year(df: pd.DataFrame) -> pd.DataFrame:
+    """Races per Year chart data (Races page, new Races tab, Row 1):
+    count of non-parkrun races per calendar year, across all time. Same
+    Race-type + Location-does-not-contain-'parkrun' filter as
+    calculate_race_summary below. Most recent year first. Returns
+    columns: Year, Races."""
+    races_df = df[
+        (df["Run Type"] == "Race")
+        & (~df["Run Location"].str.contains("parkrun", case=False))
+    ].copy()
+    races_df["Year"] = races_df["Date"].dt.year
+
+    result = (
+        races_df.groupby("Year")
+        .size()
+        .reset_index(name="Races")
+        .sort_values("Year", ascending=False)
+        .reset_index(drop=True)
+    )
+    return result
+
+
+def calculate_race_summary(df: pd.DataFrame) -> pd.DataFrame:
+    """Race Summary table (Races page, new Races tab, Row 2): every
+    individual non-parkrun race across all time (unlike
+    calculate_races_table, which is Rolling-Year-only), most recent
+    first. Same Race-type + Location-does-not-contain-'parkrun' filter,
+    with no In Last Year restriction. A plain listing of individual
+    races rather than a Quality-based aggregate, so Family Runs are not
+    excluded (races are never Family Runs in practice, but this keeps
+    the convention explicit and consistent with calculate_races_table).
+    Returns columns: Month, Location, Distance, Time, Pace, Quality."""
+    races_df = df[
+        (df["Run Type"] == "Race")
+        & (~df["Run Location"].str.contains("parkrun", case=False))
+    ].copy()
+    races_df = races_df.sort_values("Date", ascending=False).reset_index(drop=True)
+    races_df["Month"] = races_df["Date"].dt.strftime("%b-%y")
+    races_df = races_df.rename(
+        columns={
+            "Run Location": "Location",
+            "Run Distance": "Distance",
+            "Run Time (hh:mm:ss)": "Time",
+            "Running Pace (min/km)": "Pace",
+            "Run Quality": "Quality",
+        }
+    )
+    return races_df[["Month", "Location", "Distance", "Time", "Pace", "Quality"]]
+
+
 def calculate_recent_runs(df: pd.DataFrame) -> pd.DataFrame:
     """Recent Runs table (Overview page, Recent Running Profile tab):
     every run where Last Month = 1, most recent first. A plain listing
@@ -746,9 +796,16 @@ def kpi_average_time_seconds(df: pd.DataFrame) -> float:
     return time_seconds.mean()
 
 
-def calculate_favourite_run_top_n(filtered_df: pd.DataFrame, n: int) -> pd.DataFrame:
+def calculate_favourite_run_top_n(
+    filtered_df: pd.DataFrame, n: int, include_location: bool = False
+) -> pd.DataFrame:
     """Top n fastest runs for a Favourite Run (Table40 - Top 10 Runs),
-    fastest first. Returns columns: Rank, Month, Time, Pace, Quality."""
+    fastest first. Returns columns: Rank, Month, [Location], Time, Pace,
+    Quality. Location is omitted by default (every row shares the same
+    location on the Favourite Runs tab, since a Favourite Run is a fixed
+    distance+location combination) - pass include_location=True for the
+    Personal Bests tab, where a distance alone doesn't fix the location
+    and so it varies row to row."""
     working_df = filtered_df.copy()
     working_df["_time_seconds"] = working_df["Run Time (hh:mm:ss)"].apply(
         parse_hhmmss_to_seconds
@@ -761,14 +818,26 @@ def calculate_favourite_run_top_n(filtered_df: pd.DataFrame, n: int) -> pd.DataF
             "Run Time (hh:mm:ss)": "Time",
             "Running Pace (min/km)": "Pace",
             "Run Quality": "Quality",
+            "Run Location": "Location",
         }
     )
-    return working_df[["Rank", "Month", "Time", "Pace", "Quality"]]
+    columns = ["Rank", "Month"]
+    if include_location:
+        columns.append("Location")
+    columns += ["Time", "Pace", "Quality"]
+    return working_df[columns]
 
 
-def calculate_favourite_run_recent_n(filtered_df: pd.DataFrame, n: int) -> pd.DataFrame:
+def calculate_favourite_run_recent_n(
+    filtered_df: pd.DataFrame, n: int, include_location: bool = False
+) -> pd.DataFrame:
     """Most recent n runs for a Favourite Run (Table42 - Recent 5 Runs),
-    most recent first. Returns columns: Month, Time, Pace, Quality."""
+    most recent first. Returns columns: Month, [Location], Time, Pace,
+    Quality. Location is omitted by default (every row shares the same
+    location on the Favourite Runs tab, since a Favourite Run is a fixed
+    distance+location combination) - pass include_location=True for the
+    Personal Bests tab, where a distance alone doesn't fix the location
+    and so it varies row to row."""
     working_df = filtered_df.sort_values("Date", ascending=False).head(n).reset_index(drop=True)
     working_df["Month"] = working_df["Date"].dt.strftime("%b-%y")
     working_df = working_df.rename(
@@ -776,9 +845,14 @@ def calculate_favourite_run_recent_n(filtered_df: pd.DataFrame, n: int) -> pd.Da
             "Run Time (hh:mm:ss)": "Time",
             "Running Pace (min/km)": "Pace",
             "Run Quality": "Quality",
+            "Run Location": "Location",
         }
     )
-    return working_df[["Month", "Time", "Pace", "Quality"]]
+    columns = ["Month"]
+    if include_location:
+        columns.append("Location")
+    columns += ["Time", "Pace", "Quality"]
+    return working_df[columns]
 
 
 def calculate_favourite_run_all_time_series(filtered_df: pd.DataFrame) -> pd.DataFrame:
