@@ -29,11 +29,22 @@ import numpy as np
 import streamlit as st
 from scipy.stats import gaussian_kde
 
+from transform import calculate_rolling_flags
+
 # ==============================================================
 # CONFIGURATION
 # ==============================================================
 RUNS_PARQUET_PATH = "data/runs.parquet"
 REFERENCE_DATA_PATH = "reference/reference_data.xlsx"
+
+# How long a cached load_runs_data() result is trusted before Streamlit
+# re-reads the Parquet file and recomputes the rolling flags below. Not
+# needed for the Parquet content itself (that only changes when a new
+# run is logged/committed, which invalidates the cache on redeploy
+# anyway) - it exists purely so the four rolling flags don't go stale if
+# a single app process stays alive and idle across a day boundary
+# (e.g. a browser tab left open overnight on Streamlit Cloud).
+ROLLING_FLAGS_CACHE_TTL = "1h"
 
 # The date running records are considered to begin, used for the
 # "per month" KPIs (Runs per Month, Distance per Month).
@@ -47,10 +58,39 @@ AVERAGE_DAYS_PER_MONTH = 365.25 / 12
 # ==============================================================
 # DATA LOADING (cached so the file is only read once per session)
 # ==============================================================
-@st.cache_data
+@st.cache_data(ttl=ROLLING_FLAGS_CACHE_TTL)
 def load_runs_data() -> pd.DataFrame:
-    """Load the clean runs dataset from Parquet."""
-    return pd.read_parquet(RUNS_PARQUET_PATH)
+    """Load the clean runs dataset from Parquet, then overwrite Current
+    Year / Current Month / Last Month / In Last Year with values freshly
+    computed against today's date.
+
+    These four flags are rolling/relative properties of *today*, not
+    fixed properties of a run - a run's Date never changes, but whether
+    it falls in "the last month" does, every single day, regardless of
+    whether that run's row has been touched since. The values stored in
+    runs.parquet are only ever as fresh as the last ingest_transform.py
+    or reingest_edits.py run, and the normal logging workflow (the
+    Streamlit entry form, which auto-commits) never re-runs either
+    pipeline script - so relying on the stored values meant every
+    previously-logged run's flags silently aged out of date. Recomputing
+    them here, every load, makes them self-correcting: whatever's in the
+    Parquet file for these four columns is superseded before any page
+    sees it, so no page file needs to know this happened.
+
+    The other 15 fields are genuine per-run values (calculated once, at
+    ingestion/logging time, from that run's own data) and are left
+    exactly as stored."""
+    df = pd.read_parquet(RUNS_PARQUET_PATH)
+
+    calculation_date = datetime.today()
+    rolling_flags = pd.DataFrame(
+        df["Date"].apply(lambda d: calculate_rolling_flags(d, calculation_date)).tolist(),
+        index=df.index,
+    )
+    for column in rolling_flags.columns:
+        df[column] = rolling_flags[column]
+
+    return df
 
 
 @st.cache_data
