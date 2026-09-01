@@ -202,7 +202,15 @@ def kpi_average_pace_seconds(df: pd.DataFrame) -> float:
 
 
 def kpi_total_time_seconds(df: pd.DataFrame) -> float:
-    """Total running time (in seconds) across the given rows."""
+    """Total running time (in seconds) across the given rows. Returns 0.0
+    for an empty DataFrame (e.g. the current calendar month before any
+    run has been logged) rather than relying on Series.sum() to handle
+    it - an empty 'Run Time (hh:mm:ss)' column never gets its .apply()
+    call actually invoked (pandas skips it when there's nothing to
+    iterate), so it stays string-typed rather than numeric, and summing
+    an empty string-typed Series returns '' instead of 0."""
+    if df.empty:
+        return 0.0
     time_seconds = df["Run Time (hh:mm:ss)"].apply(parse_hhmmss_to_seconds)
     return time_seconds.sum()
 
@@ -830,8 +838,13 @@ def kpi_average_time_seconds(df: pd.DataFrame) -> float:
     """Average Run Time (in seconds), excluding Family Runs - consistent
     with the project's Average Pace convention (kpi_average_pace_seconds),
     since Average Time and Average Pace carry the same information for a
-    fixed-distance Favourite Run."""
+    fixed-distance Favourite Run. NaN if there are no non-Family-Run rows
+    - same empty-check kpi_average_pace_seconds already uses, since an
+    empty string-typed column can't have .mean() called on it at all
+    (raises TypeError) once .apply() leaves it unconverted."""
     non_family = df[df["Family Run"] == "No"]
+    if non_family.empty:
+        return math.nan
     time_seconds = non_family["Run Time (hh:mm:ss)"].apply(parse_hhmmss_to_seconds)
     return time_seconds.mean()
 

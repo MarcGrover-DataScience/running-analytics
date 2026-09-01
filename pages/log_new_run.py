@@ -30,6 +30,7 @@ from data_helpers import (
 from transform import (
     FINAL_FIELD_ORDER,
     calculate_all_derived_fields,
+    calculate_rolling_flags,
     hhmmss_string_to_timedelta,
     mmss_string_to_timedelta,
 )
@@ -52,13 +53,50 @@ country_options = reference["countries"]["Country"].tolist()
 # ==============================================================
 # EXCEL APPEND HELPER
 # ==============================================================
-def append_run_to_backup_excel(new_row: dict, path: str):
+def refresh_rolling_flags_in_backup(worksheet, calculation_date: datetime):
+    """Recompute Current Year / Current Month / Last Month / In Last Year
+    for every *existing* row already in the backup workbook's Runs sheet,
+    against calculation_date.
+
+    These four flags are rolling/relative to today, not fixed properties
+    of a run, so a row written on a previous visit to this form is stale
+    the moment a day/month/year boundary passes - and normally nothing
+    would touch this file again until the next manual reingest_edits.py
+    run. Refreshing them here (every time a new run is logged) keeps the
+    Excel validation copy honest without requiring reingest_edits.py to
+    be run manually just to keep the flags current. This mirrors what
+    load_runs_data() already does for the live app's copy of the data -
+    same source function (calculate_rolling_flags), applied here directly
+    to the worksheet cells instead of a DataFrame, since this file is
+    edited in place rather than rebuilt from scratch."""
+    date_col = FINAL_FIELD_ORDER.index("Date") + 1
+    flag_cols = {
+        field: FINAL_FIELD_ORDER.index(field) + 1
+        for field in ("Current Year", "Current Month", "Last Month", "In Last Year")
+    }
+
+    for row in worksheet.iter_rows(min_row=2, max_row=worksheet.max_row):
+        date_value = row[date_col - 1].value
+        if date_value is None:
+            continue
+        flags = calculate_rolling_flags(date_value, calculation_date)
+        for field, col_idx in flag_cols.items():
+            worksheet.cell(row=row[0].row, column=col_idx).value = flags[field]
+
+
+def append_run_to_backup_excel(new_row: dict, path: str, calculation_date: datetime):
     """Append one new row to the backup Excel's Runs sheet, applying the
     same per-column number formats as ingest_transform.py/
     reingest_edits.py use, so the file stays consistent regardless of
-    which mechanism last wrote to it."""
+    which mechanism last wrote to it. Also refreshes the four rolling
+    flags on every pre-existing row first (see
+    refresh_rolling_flags_in_backup), so the whole sheet - not just the
+    row being added - reflects calculation_date."""
     workbook = load_workbook(path)
     worksheet = workbook["Runs"]
+
+    refresh_rolling_flags_in_backup(worksheet, calculation_date)
+
     next_row_num = worksheet.max_row + 1
 
     for col_idx, field in enumerate(FINAL_FIELD_ORDER, start=1):
@@ -166,7 +204,7 @@ if submitted:
         updated_df.to_parquet(RUNS_PARQUET_PATH, index=False)
 
         # Keep the backup Excel in sync with anything logged here
-        append_run_to_backup_excel(new_row, BACKUP_EXCEL_PATH)
+        append_run_to_backup_excel(new_row, BACKUP_EXCEL_PATH, calculation_date)
 
         # Clear the cached data so the next page load reflects this run
         load_runs_data.clear()
